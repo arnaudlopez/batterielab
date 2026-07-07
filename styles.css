@@ -350,6 +350,20 @@ button:hover {
   margin-top: 14px;
 }
 
+.save-actions {
+  margin-top: 0;
+}
+
+.helper-text {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.hidden-file {
+  display: none;
+}
+
 .button-row button:first-child {
   background: var(--accent);
   border-color: var(--accent);

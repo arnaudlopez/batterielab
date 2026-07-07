@@ -96,6 +96,12 @@ const presets = {
 let logoDataUrl = "";
 
 const initialState = readState();
+const saveStorageKey = "batterielab:saves:v1";
+const saveUi = {
+  name: document.getElementById("saveName"),
+  list: document.getElementById("savedConfigs"),
+  status: document.getElementById("saveStatus"),
+};
 
 function num(input, fallback = 0) {
   const value = Number(input.value);
@@ -837,6 +843,185 @@ function exportJson() {
   );
 }
 
+function readSaves() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(saveStorageKey) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSaves(saves) {
+  localStorage.setItem(saveStorageKey, JSON.stringify(saves));
+}
+
+function normalizeSave(rawSave) {
+  if (!rawSave || typeof rawSave !== "object" || !rawSave.fields) return null;
+  return {
+    id: String(rawSave.id || `save-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    name: String(rawSave.name || "Sauvegarde importee"),
+    updatedAt: rawSave.updatedAt || new Date().toISOString(),
+    fields: rawSave.fields,
+    logoDataUrl: rawSave.logoDataUrl || "",
+  };
+}
+
+function saveStatus(message) {
+  saveUi.status.textContent = message;
+}
+
+function fieldSnapshot() {
+  return Object.fromEntries(ids.map((id) => {
+    const field = el[id];
+    return [id, field.type === "checkbox" ? field.checked : field.value];
+  }));
+}
+
+function defaultSaveName() {
+  const state = readState();
+  const customer = state.customerName && state.customerName !== "Nom du client" ? `${state.customerName} - ` : "";
+  return `${customer}${state.series}S${state.parallel}P - ${new Date().toLocaleString("fr-FR")}`;
+}
+
+function renderSaveList(selectedId = "") {
+  const saves = readSaves().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  saveUi.list.replaceChildren();
+
+  if (!saves.length) {
+    saveUi.list.append(new Option("Aucune sauvegarde", ""));
+    return;
+  }
+
+  saves.forEach((save) => {
+    const date = new Date(save.updatedAt).toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    saveUi.list.append(new Option(`${save.name} - ${date}`, save.id));
+  });
+
+  if (selectedId) saveUi.list.value = selectedId;
+}
+
+function saveCurrentConfig() {
+  const name = saveUi.name.value.trim() || defaultSaveName();
+  const saves = readSaves();
+  const now = new Date().toISOString();
+  const existing = saves.find((save) => save.name.toLowerCase() === name.toLowerCase());
+  const entry = {
+    id: existing?.id || `save-${Date.now()}`,
+    name,
+    updatedAt: now,
+    fields: fieldSnapshot(),
+    logoDataUrl,
+  };
+  const next = existing ? saves.map((save) => (save.id === existing.id ? entry : save)) : [...saves, entry];
+
+  try {
+    writeSaves(next);
+    saveUi.name.value = name;
+    renderSaveList(entry.id);
+    saveStatus(existing ? `Sauvegarde mise a jour : ${name}` : `Sauvegarde creee : ${name}`);
+  } catch {
+    saveStatus("Impossible de sauvegarder: stockage local plein ou indisponible.");
+  }
+}
+
+function applySavedConfig(save) {
+  Object.entries(save.fields || {}).forEach(([id, value]) => {
+    const field = el[id];
+    if (!field) return;
+    if (field.type === "checkbox") field.checked = Boolean(value);
+    else field.value = value;
+  });
+
+  logoDataUrl = save.logoDataUrl || "";
+  document.getElementById("companyLogo").value = "";
+  saveUi.name.value = save.name;
+  render();
+}
+
+function loadSelectedConfig() {
+  const selectedId = saveUi.list.value;
+  const save = readSaves().find((item) => item.id === selectedId);
+  if (!save) {
+    saveStatus("Choisis une sauvegarde a recharger.");
+    return;
+  }
+  applySavedConfig(save);
+  renderSaveList(save.id);
+  saveStatus(`Sauvegarde rechargee : ${save.name}`);
+}
+
+function deleteSelectedConfig() {
+  const selectedId = saveUi.list.value;
+  const saves = readSaves();
+  const save = saves.find((item) => item.id === selectedId);
+  if (!save) {
+    saveStatus("Choisis une sauvegarde a supprimer.");
+    return;
+  }
+  writeSaves(saves.filter((item) => item.id !== selectedId));
+  renderSaveList();
+  saveStatus(`Sauvegarde supprimee : ${save.name}`);
+}
+
+function saveDatabasePayload() {
+  return {
+    app: "BatterieLab",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    saves: readSaves(),
+  };
+}
+
+function exportSaveDatabase() {
+  const payload = saveDatabasePayload();
+  const stamp = new Date().toISOString().slice(0, 10);
+  download(`batterielab-sauvegardes-${stamp}.json`, JSON.stringify(payload, null, 2), "application/json");
+  saveStatus(`${payload.saves.length} sauvegarde(s) exportee(s) en JSON.`);
+}
+
+function mergeImportedSaves(importedSaves) {
+  const current = readSaves();
+  const byKey = new Map(current.map((save) => [save.id, save]));
+
+  importedSaves.forEach((save) => {
+    const sameName = current.find((item) => item.name.toLowerCase() === save.name.toLowerCase());
+    const key = byKey.has(save.id) ? save.id : sameName?.id || save.id;
+    byKey.set(key, { ...save, id: key });
+  });
+
+  const merged = Array.from(byKey.values()).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  writeSaves(merged);
+  renderSaveList(merged[0]?.id || "");
+  return merged.length;
+}
+
+function importSaveDatabaseFile(file) {
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || "{}"));
+      const rawSaves = Array.isArray(parsed) ? parsed : parsed.saves;
+      if (!Array.isArray(rawSaves)) throw new Error("Format invalide");
+      const saves = rawSaves.map(normalizeSave).filter(Boolean);
+      if (!saves.length) throw new Error("Aucune sauvegarde valide");
+      const total = mergeImportedSaves(saves);
+      saveStatus(`${saves.length} sauvegarde(s) importee(s). Total local : ${total}.`);
+    } catch {
+      saveStatus("Import impossible: fichier JSON de sauvegardes invalide.");
+    } finally {
+      document.getElementById("importSaveDb").value = "";
+    }
+  });
+  reader.readAsText(file);
+}
+
 function quoteHtmlDocument() {
   const state = readState();
   const title = state.quoteNumber || "devis-batterielab";
@@ -895,6 +1080,8 @@ document.getElementById("resetButton").addEventListener("click", () => {
     if (el[key].type === "checkbox") el[key].checked = value;
     else el[key].value = value;
   });
+  logoDataUrl = "";
+  document.getElementById("companyLogo").value = "";
   render();
 });
 
@@ -903,6 +1090,21 @@ document.getElementById("downloadJson").addEventListener("click", exportJson);
 document.getElementById("downloadQuoteHtml").addEventListener("click", exportQuoteHtml);
 document.getElementById("printQuote").addEventListener("click", printQuote);
 document.getElementById("printButton").addEventListener("click", () => window.print());
+document.getElementById("saveConfig").addEventListener("click", saveCurrentConfig);
+document.getElementById("loadConfig").addEventListener("click", loadSelectedConfig);
+document.getElementById("deleteConfig").addEventListener("click", deleteSelectedConfig);
+document.getElementById("exportSaveDb").addEventListener("click", exportSaveDatabase);
+document.getElementById("importSaveDbButton").addEventListener("click", () => {
+  document.getElementById("importSaveDb").click();
+});
+document.getElementById("importSaveDb").addEventListener("change", (event) => {
+  const [file] = event.target.files;
+  if (file) importSaveDatabaseFile(file);
+});
+document.getElementById("clearSaveName").addEventListener("click", () => {
+  saveUi.name.value = "";
+  saveStatus("Nom de sauvegarde vide.");
+});
 document.getElementById("companyLogo").addEventListener("change", (event) => {
   const [file] = event.target.files;
   if (!file) return;
@@ -920,4 +1122,5 @@ document.getElementById("removeLogo").addEventListener("click", () => {
 });
 window.addEventListener("resize", render);
 
+renderSaveList();
 render();

@@ -13,6 +13,7 @@ Configurateur web pour designer un pack batterie a cellules cylindriques.
 - Controle d'encombrement par rapport au boitier.
 - Calculs de cellules, tension nominale, energie, cout, main d'oeuvre, marge et gain.
 - Generation d'un devis client avec coordonnees, logo, mentions, conditions et lien PayPal.
+- Sauvegardes locales nommees, avec export/import JSON de la base de sauvegardes.
 - Export SVG, export JSON et impression.
 
 ## Utilisation

@@ -234,6 +234,34 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
             </label>
           </div>
         </section>
+
+        <section class="panel">
+          <h2>Sauvegardes</h2>
+          <div class="form-stack">
+            <label>
+              <span>Nom de sauvegarde</span>
+              <input id="saveName" type="text" placeholder="Ex: Jean Dupont - 13S8P" />
+            </label>
+            <div class="button-row save-actions">
+              <button id="saveConfig" type="button">Sauvegarder</button>
+              <button id="clearSaveName" type="button">Vider</button>
+            </div>
+            <label>
+              <span>Sauvegardes existantes</span>
+              <select id="savedConfigs"></select>
+            </label>
+            <div class="button-row save-actions">
+              <button id="loadConfig" type="button">Recharger</button>
+              <button id="deleteConfig" type="button">Supprimer</button>
+            </div>
+            <div class="button-row save-actions">
+              <button id="exportSaveDb" type="button">Exporter base JSON</button>
+              <button id="importSaveDbButton" type="button">Importer base JSON</button>
+            </div>
+            <input id="importSaveDb" class="hidden-file" type="file" accept="application/json,.json" />
+            <p class="helper-text" id="saveStatus">Sauvegardes locales dans ce navigateur. Export JSON recommande pour archive ou transfert.</p>
+          </div>
+        </section>
       </aside>
 
       <section class="workspace">
