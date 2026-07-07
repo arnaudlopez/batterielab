@@ -1,4 +1,5 @@
 const ids = [
+  "hidePrices",
   "series",
   "parallel",
   "cellPreset",
@@ -141,6 +142,7 @@ function fixed(value, digits = 1) {
 
 function readState() {
   return {
+    hidePrices: el.hidePrices.checked,
     series: Math.max(1, Math.round(num(el.series, 13))),
     parallel: Math.max(1, Math.round(num(el.parallel, 8))),
     cellPreset: el.cellPreset.value,
@@ -777,6 +779,7 @@ function renderQuote(state, data) {
 function render() {
   const state = readState();
   const data = derive(state);
+  document.body.classList.toggle("hide-prices", state.hidePrices);
 
   outputs.metricArchitecture.textContent = `${state.series}S${state.parallel}P`;
   outputs.metricCells.textContent = data.cellCount.toLocaleString("fr-FR");

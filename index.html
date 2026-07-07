@@ -19,6 +19,17 @@
         </div>
 
         <section class="panel">
+          <div class="section-row">
+            <h2>Affichage</h2>
+            <label class="switch">
+              <input id="hidePrices" type="checkbox" />
+              <span></span>
+            </label>
+          </div>
+          <p class="helper-text">Masquer les prix pour capture client.</p>
+        </section>
+
+        <section class="panel">
           <h2>Architecture</h2>
           <div class="grid two">
             <label>
@@ -135,7 +146,7 @@
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel price-sensitive">
           <h2>Couts</h2>
           <div class="grid two">
             <label>
@@ -180,7 +191,7 @@
               <span>Validite</span>
               <input id="quoteValidity" type="number" min="1" max="180" step="1" value="30" />
             </label>
-            <label>
+            <label class="price-sensitive">
               <span>Acompte %</span>
               <input id="depositPercent" type="number" min="0" max="100" step="1" value="30" />
             </label>
@@ -221,11 +232,11 @@ Assurance RC Pro : a renseigner</textarea>
 Email client
 Telephone client</textarea>
             </label>
-            <label>
+            <label class="price-sensitive">
               <span>Lien PayPal</span>
               <input id="paypalUrl" type="url" placeholder="https://paypal.me/votrecompte/916" />
             </label>
-            <label>
+            <label class="price-sensitive">
               <span>Conditions de paiement</span>
               <textarea id="paymentTerms" rows="3">Acompte a la commande, solde avant expedition ou remise en main propre.</textarea>
             </label>
@@ -275,8 +286,8 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
           <div class="metric"><span>Tension nominale</span><strong id="metricVoltage">46.8 V</strong></div>
           <div class="metric"><span>Energie</span><strong id="metricEnergy">1872 Wh</strong></div>
           <div class="metric"><span>Decharge max</span><strong id="metricMaxDischarge">120 A</strong></div>
-          <div class="metric"><span>Cout total</span><strong id="metricCost">704 EUR</strong></div>
-          <div class="metric"><span>Gain</span><strong id="metricGain">211 EUR</strong></div>
+          <div class="metric price-sensitive"><span>Cout total</span><strong id="metricCost">704 EUR</strong></div>
+          <div class="metric price-sensitive"><span>Gain</span><strong id="metricGain">211 EUR</strong></div>
         </header>
 
         <section class="canvas-zone">
@@ -327,7 +338,7 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
             </div>
           </div>
 
-          <div class="panel output-panel">
+          <div class="panel output-panel price-sensitive">
             <h2>Prix</h2>
             <div class="spec-grid">
               <span>Cellules</span><strong id="cellsSubtotal">0 EUR</strong>
@@ -388,20 +399,20 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
                   <tr>
                     <th>Description</th>
                     <th>Details</th>
-                    <th>Total</th>
+                    <th class="price-sensitive">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>Pack batterie sur mesure</td>
                     <td id="quoteBatteryDetails">Configuration batterie</td>
-                    <td id="quoteSalePrice">0 EUR</td>
+                    <td id="quoteSalePrice" class="price-sensitive">0 EUR</td>
                   </tr>
                 </tbody>
               </table>
             </section>
 
-            <section class="quote-totals">
+            <section class="quote-totals price-sensitive">
               <div>
                 <h3>Paiement</h3>
                 <p id="quotePaymentTerms">Conditions de paiement</p>

@@ -163,6 +163,7 @@ textarea {
 }
 
 .switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
   width: 46px;
@@ -170,8 +171,13 @@ textarea {
 
 .switch input {
   position: absolute;
+  inset: 0;
+  width: 46px;
+  height: 26px;
+  margin: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
+  z-index: 1;
 }
 
 .switch span {
@@ -181,6 +187,7 @@ textarea {
   border-radius: 999px;
   background: #c9d1cc;
   cursor: pointer;
+  pointer-events: none;
 }
 
 .switch span::after {
@@ -358,6 +365,10 @@ button:hover {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
+}
+
+body.hide-prices .price-sensitive {
+  display: none !important;
 }
 
 .hidden-file {
