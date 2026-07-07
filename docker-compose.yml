@@ -1,0 +1,21 @@
+services:
+  batterielab:
+    build: .
+    container_name: batterielab
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - batterielab-data:/data
+    environment:
+      PUBLIC_BASE_URL: "https://batterielab.example.com"
+      MAIL_FROM: "BatterieLab <devis@example.com>"
+      MAIL_REPLY_TO: "contact@example.com"
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_SECURE: "false"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+
+volumes:
+  batterielab-data:

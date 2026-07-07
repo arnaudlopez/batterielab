@@ -33,6 +33,7 @@ const ids = [
   "companyAddress",
   "companyLegal",
   "customerName",
+  "customerEmail",
   "customerAddress",
   "paypalUrl",
   "paymentTerms",
@@ -86,6 +87,11 @@ const svgs = {
   top: document.getElementById("topView"),
   side: document.getElementById("sideView"),
   width: document.getElementById("widthView"),
+};
+
+const publicQuoteUi = {
+  status: document.getElementById("publicQuoteStatus"),
+  link: document.getElementById("publicQuoteLink"),
 };
 
 const presets = {
@@ -168,6 +174,7 @@ function readState() {
     companyAddress: text(el.companyAddress),
     companyLegal: text(el.companyLegal),
     customerName: text(el.customerName),
+    customerEmail: text(el.customerEmail),
     customerAddress: text(el.customerAddress),
     paypalUrl: text(el.paypalUrl),
     paymentTerms: text(el.paymentTerms),
@@ -843,6 +850,88 @@ function exportJson() {
   );
 }
 
+function serializedTopSvg() {
+  const svg = svgs.top.cloneNode(true);
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.removeAttribute("role");
+  svg.removeAttribute("aria-label");
+  const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+  style.textContent = `
+    .cell-outline{stroke:#2c3934;stroke-width:.9}
+    .cell-terminal{fill:#fff;stroke:#394642;stroke-width:.5}
+    .case-outline{fill:rgba(255,255,255,.42);stroke:#6a766f;stroke-width:1.2;stroke-dasharray:6 5}
+    .pack-shadow{fill:rgba(15,118,110,.08);stroke:rgba(15,118,110,.45);stroke-width:1}
+    .bms{fill:#183a37;stroke:#091f1d;stroke-width:1}
+    .bms-chip{fill:#d6e3df;opacity:.9}
+    .nickel{stroke:#a9a29a;stroke-width:5;stroke-linecap:round;opacity:.78}
+    .wire-main{fill:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+    .wire-balance{fill:none;stroke-width:1.15;stroke-linecap:round;opacity:.78}
+    .label-svg{fill:#20302b;font-size:10px;font-family:Arial,sans-serif;text-anchor:middle;dominant-baseline:middle}
+    .bms-label{fill:#fff}
+    .small-svg{fill:#4c5a55;font-size:9px;font-family:Arial,sans-serif}
+  `;
+  svg.prepend(style);
+  return new XMLSerializer().serializeToString(svg);
+}
+
+function publicQuotePayload() {
+  const state = readState();
+  const data = derive(state);
+  return {
+    state,
+    results: data,
+    logoDataUrl,
+    topSvg: serializedTopSvg(),
+    quote: {
+      number: state.quoteNumber,
+      date: state.quoteDate,
+      validUntil: formatDateFr(addDays(parseDateInput(state.quoteDate), state.quoteValidity)),
+      companyName: state.companyName,
+      companyAddress: state.companyAddress,
+      companyLegal: state.companyLegal,
+      customerName: state.customerName,
+      customerEmail: state.customerEmail,
+      customerAddress: state.customerAddress,
+      paymentTerms: state.paymentTerms,
+      legalTerms: state.legalTerms,
+      paypalUrl: safePaymentUrl(state.paypalUrl),
+      salePrice: data.salePrice,
+      depositPercent: state.depositPercent,
+      depositAmount: data.salePrice * (state.depositPercent / 100),
+    },
+  };
+}
+
+function setPublicQuoteStatus(message, url = "") {
+  publicQuoteUi.status.textContent = message;
+  publicQuoteUi.link.textContent = url;
+  publicQuoteUi.link.href = url || "#";
+  publicQuoteUi.link.classList.toggle("is-empty", !url);
+}
+
+async function createPublicQuote() {
+  const payload = publicQuotePayload();
+  if (!payload.quote.customerEmail) {
+    setPublicQuoteStatus("Ajoute un email client avant l'envoi automatique.");
+    return;
+  }
+
+  setPublicQuoteStatus("Creation du lien public en cours...");
+  try {
+    const response = await fetch("/api/quotes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Erreur serveur");
+    const emailText = result.emailSent ? "Email envoye." : `Lien cree, email non envoye (${result.emailMessage || "SMTP non configure"}).`;
+    setPublicQuoteStatus(`${emailText} URL publique :`, result.url);
+  } catch (error) {
+    setPublicQuoteStatus(`Service public indisponible: ${error.message}`);
+  }
+}
+
 function readSaves() {
   try {
     const parsed = JSON.parse(localStorage.getItem(saveStorageKey) || "[]");
@@ -1090,6 +1179,7 @@ document.getElementById("downloadJson").addEventListener("click", exportJson);
 document.getElementById("downloadQuoteHtml").addEventListener("click", exportQuoteHtml);
 document.getElementById("printQuote").addEventListener("click", printQuote);
 document.getElementById("printButton").addEventListener("click", () => window.print());
+document.getElementById("createPublicQuote").addEventListener("click", createPublicQuote);
 document.getElementById("saveConfig").addEventListener("click", saveCurrentConfig);
 document.getElementById("loadConfig").addEventListener("click", loadSelectedConfig);
 document.getElementById("deleteConfig").addEventListener("click", deleteSelectedConfig);

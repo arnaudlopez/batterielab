@@ -1,0 +1,13 @@
+{
+  "name": "batterielab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check app.js && node --check server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^9.0.3"
+  }
+}

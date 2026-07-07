@@ -25,3 +25,31 @@ python3 -m http.server 4173
 ```
 
 Puis ouvrir `http://localhost:4173`.
+
+## Mode service
+
+Pour les devis publics et l'envoi email, lancer l'application comme service Node/Docker:
+
+```sh
+npm install
+npm start
+```
+
+Le service expose:
+
+- `/` : configurateur
+- `/api/quotes` : creation d'un devis public
+- `/devis/:id` : page publique client
+
+En Docker/Portainer, utiliser `Dockerfile` ou `docker-compose.yml`, avec un volume persistant monte sur `/data`.
+
+Variables utiles:
+
+- `PUBLIC_BASE_URL` : URL publique dediee, par exemple `https://batterielab.example.com`
+- `MAIL_FROM` : expediteur email
+- `MAIL_REPLY_TO` : adresse de reponse
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` : configuration SMTP
+
+Si SMTP n'est pas configure, le lien public est cree mais l'email n'est pas envoye.
+
+Recommandation de deploiement: proteger l'interface de configuration et `/api/quotes` par le reverse proxy si le service est expose publiquement. Les pages `/devis/:id` peuvent rester publiques pour les clients.

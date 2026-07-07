@@ -212,6 +212,10 @@ Assurance RC Pro : a renseigner</textarea>
               <input id="customerName" type="text" value="Nom du client" />
             </label>
             <label>
+              <span>Email client</span>
+              <input id="customerEmail" type="email" placeholder="client@example.com" />
+            </label>
+            <label>
               <span>Coordonnees client</span>
               <textarea id="customerAddress" rows="4">Adresse client
 Email client
@@ -340,8 +344,11 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
               <button id="downloadJson" type="button">Exporter JSON</button>
               <button id="printQuote" type="button">Imprimer devis</button>
               <button id="downloadQuoteHtml" type="button">Exporter devis HTML</button>
+              <button id="createPublicQuote" type="button">Creer lien public + email</button>
               <button id="printButton" type="button">Imprimer</button>
             </div>
+            <p class="helper-text" id="publicQuoteStatus">Le lien public necessite le mode serveur.</p>
+            <a class="public-quote-link" id="publicQuoteLink" href="#" target="_blank" rel="noopener"></a>
           </div>
         </section>
 
