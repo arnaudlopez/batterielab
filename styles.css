@@ -534,11 +534,16 @@ body.hide-prices .price-sensitive {
   align-items: center;
   min-height: 24px;
   border-radius: 4px;
-  background: #003087;
-  color: #fff;
+  background: #fff;
+  border: 1px solid #d8e1f0;
+  color: #003087;
   padding: 2px 7px;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.paypal-mark span:last-child {
+  color: #009cde;
 }
 
 .paypal-link.is-disabled {
@@ -753,7 +758,10 @@ body.hide-prices .price-sensitive {
 
   .paypal-mark {
     background: #fff;
-    border: 1px solid #003087;
     color: #003087;
+  }
+
+  .paypal-mark span:last-child {
+    color: #009cde;
   }
 }

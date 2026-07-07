@@ -39,6 +39,7 @@ Le service expose:
 
 - `/` : configurateur
 - `/api/quotes` : creation d'un devis public
+- `/api/quote-pdf` : generation directe d'un PDF de devis
 - `/devis/:id` : page publique client
 
 En Docker/Portainer, utiliser `Dockerfile` ou `docker-compose.yml`, avec un volume persistant monte sur `/data`.

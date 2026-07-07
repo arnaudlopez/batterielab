@@ -8,6 +8,7 @@
     "check": "node --check app.js && node --check server.js"
   },
   "dependencies": {
-    "nodemailer": "^9.0.3"
+    "nodemailer": "^9.0.3",
+    "puppeteer-core": "^25.3.0"
   }
 }

@@ -4,6 +4,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import nodemailer from "nodemailer";
+import puppeteer from "puppeteer-core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
@@ -54,6 +55,33 @@ function safeUrl(value = "") {
 
 function money(value) {
   return `${Math.round(Number(value || 0)).toLocaleString("fr-FR")} EUR`;
+}
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function findChromiumExecutable() {
+  const candidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.CHROME_BIN,
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) return candidate;
+  }
+  throw new Error("Chromium introuvable pour generer le PDF");
 }
 
 function fixed(value, digits = 1) {
@@ -123,7 +151,7 @@ async function sendQuoteEmail(quote, url) {
   return { sent: true, message: "envoye" };
 }
 
-function publicQuoteHtml(quote) {
+function publicQuoteHtml(quote, options = {}) {
   const q = quote.quote || {};
   const state = quote.state || {};
   const results = quote.results || {};
@@ -149,12 +177,13 @@ function publicQuoteHtml(quote) {
       .specs{display:grid;grid-template-columns:1fr auto;gap:10px 16px;border:1px solid var(--line);border-radius:8px;padding:14px}.specs span{color:var(--muted)}.specs strong{text-align:right}
       table{width:100%;border-collapse:collapse;margin-top:24px}th,td{border-bottom:1px solid var(--line);padding:12px 10px;text-align:left;vertical-align:top}th:last-child,td:last-child{text-align:right;white-space:nowrap}
       .total-box{justify-self:end;width:min(100%,320px);display:grid;grid-template-columns:1fr auto;gap:10px 16px;background:#eef2ee;border:1px solid var(--line);border-radius:8px;padding:16px}.total-box span{color:var(--muted)}
-      .paypal{display:inline-flex;gap:9px;margin-top:10px;min-height:40px;align-items:center;border:1px solid #d6a400;border-radius:6px;background:#ffc439;color:#16202a;padding:9px 15px;text-decoration:none;font-weight:700}.paypal-mark{display:inline-flex;align-items:center;min-height:24px;border-radius:4px;background:#003087;color:#fff;padding:2px 7px;font-weight:800}.payment-url{margin-top:8px;color:var(--accent);font-size:13px;overflow-wrap:anywhere}.legal{border-top:1px solid var(--line);padding-top:16px;font-size:13px}
+      .paypal{display:inline-flex;gap:9px;margin-top:10px;min-height:40px;align-items:center;border:1px solid #d6a400;border-radius:6px;background:#ffc439;color:#16202a;padding:9px 15px;text-decoration:none;font-weight:700}.paypal-mark{display:inline-flex;align-items:center;min-height:24px;border-radius:4px;background:#fff;border:1px solid #d8e1f0;color:#003087;padding:2px 7px;font-weight:800}.paypal-mark span:last-child{color:#009cde}.payment-url{margin-top:8px;color:var(--accent);font-size:13px;overflow-wrap:anywhere}.legal{border-top:1px solid var(--line);padding-top:16px;font-size:13px}
+      body.pdf-export{background:#fff;font-size:12px}body.pdf-export main{max-width:none;padding:0}body.pdf-export .paper{border:0;border-radius:0;padding:0}body.pdf-export .header{grid-template-columns:1fr auto;gap:18px;padding-bottom:12px}body.pdf-export .brand{gap:12px}body.pdf-export .logo{width:64px;height:64px}body.pdf-export h1{font-size:26px}body.pdf-export .meta strong{font-size:26px}body.pdf-export .parties{grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}body.pdf-export .battery{grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px;break-inside:avoid}body.pdf-export .visual{padding:8px;max-height:250px;overflow:hidden}body.pdf-export .visual svg{height:232px;width:100%;object-fit:contain}body.pdf-export .specs{gap:7px 12px;padding:10px}body.pdf-export table{margin-top:16px;font-size:12px;break-inside:avoid}body.pdf-export th,body.pdf-export td{padding:8px}body.pdf-export .totals{grid-template-columns:1fr 280px;gap:18px;margin-top:16px;break-inside:avoid}body.pdf-export .legal{margin-top:16px;font-size:11px}
       @media(max-width:760px){main{padding:12px}.paper{padding:18px}.header,.parties,.totals,.battery{grid-template-columns:1fr}.meta{text-align:left}.total-box{justify-self:stretch}}
-      @media print{body{background:#fff}main{padding:0}.paper{border:0;border-radius:0}.paypal{background:#fff;border:1px solid #16202a;color:#16202a}.paypal-mark{background:#fff;border:1px solid #003087;color:#003087}}
+      @media print{@page{size:A4;margin:12mm}body{background:#fff}main{padding:0}.paper{border:0;border-radius:0}.paypal{background:#fff;border:1px solid #16202a;color:#16202a}.paypal-mark{background:#fff;color:#003087}.paypal-mark span:last-child{color:#009cde}}
     </style>
   </head>
-  <body>
+  <body class="${options.pdf ? "pdf-export" : ""}">
     <main>
       <article class="paper">
         <header class="header">
@@ -181,7 +210,7 @@ function publicQuoteHtml(quote) {
           <tbody><tr><td>Pack batterie sur mesure</td><td>${escapeHtml(`${state.series || ""}S${state.parallel || ""}P - ${results.cellCount || ""} cellules ${state.cellPreset || ""}`)}<br>${fixed(results.capacityAh)} Ah - ${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh</td><td>${money(q.salePrice)}</td></tr></tbody>
         </table>
         <section class="totals">
-          <div><h3>Paiement</h3><p>${escapeHtml(q.paymentTerms || "")}</p>${paypalUrl ? `<a class="paypal" href="${escapeHtml(paypalUrl)}" target="_blank" rel="noopener"><span class="paypal-mark">PayPal</span><span>Payer en ligne</span></a><p class="payment-url">Lien de paiement : ${escapeHtml(paypalUrl)}</p>` : ""}</div>
+          <div><h3>Paiement</h3><p>${escapeHtml(q.paymentTerms || "")}</p>${paypalUrl ? `<a class="paypal" href="${escapeHtml(paypalUrl)}" target="_blank" rel="noopener"><span class="paypal-mark"><span>Pay</span><span>Pal</span></span><span>Payer avec PayPal</span></a><p class="payment-url">Lien de paiement : ${escapeHtml(paypalUrl)}</p>` : ""}</div>
           <div class="total-box"><span>Total devis</span><strong>${money(q.salePrice)}</strong><span>Acompte</span><strong>${money(q.depositAmount)} (${fixed(q.depositPercent)} %)</strong></div>
         </section>
         <section class="legal"><h3>Mentions</h3><p>${escapeHtml(q.legalTerms || "")}</p></section>
@@ -202,6 +231,47 @@ async function readBody(req, maxBytes = 5_000_000) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+async function renderQuotePdf(quote) {
+  const executablePath = await findChromiumExecutable();
+  const browser = await puppeteer.launch({
+    executablePath,
+    headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 1600, deviceScaleFactor: 1 });
+    await page.setContent(publicQuoteHtml(quote, { pdf: true }), { waitUntil: "networkidle0" });
+    await page.emulateMediaType("print");
+    return await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: false,
+      margin: {
+        top: "12mm",
+        right: "12mm",
+        bottom: "12mm",
+        left: "12mm",
+      },
+    });
+  } finally {
+    await browser.close();
+  }
+}
+
+function quoteFromBody(body) {
+  return {
+    id: "preview",
+    createdAt: new Date().toISOString(),
+    state: body.state || {},
+    results: body.results || {},
+    quote: body.quote || {},
+    logoDataUrl: body.logoDataUrl || "",
+    topSvg: body.topSvg || "",
+  };
+}
+
 async function createQuote(req, res) {
   try {
     const body = JSON.parse(await readBody(req));
@@ -209,13 +279,9 @@ async function createQuote(req, res) {
 
     const id = crypto.randomBytes(12).toString("base64url");
     const quote = {
+      ...quoteFromBody(body),
       id,
       createdAt: new Date().toISOString(),
-      state: body.state || {},
-      results: body.results || {},
-      quote: body.quote || {},
-      logoDataUrl: body.logoDataUrl || "",
-      topSvg: body.topSvg || "",
     };
     const quotes = await readQuotes();
     quotes.push(quote);
@@ -226,6 +292,23 @@ async function createQuote(req, res) {
     jsonResponse(res, 201, { id, url, emailSent: email.sent, emailMessage: email.message });
   } catch (error) {
     jsonResponse(res, 400, { error: error.message || "Creation impossible" });
+  }
+}
+
+async function createQuotePdf(req, res) {
+  try {
+    const body = JSON.parse(await readBody(req));
+    const quote = quoteFromBody(body);
+    const pdf = await renderQuotePdf(quote);
+    const filename = `${(quote.quote?.number || "devis-batterielab").toLowerCase().replace(/[^a-z0-9-]+/g, "-")}.pdf`;
+    res.writeHead(200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": pdf.length,
+    });
+    res.end(pdf);
+  } catch (error) {
+    jsonResponse(res, 500, { error: error.message || "Generation PDF impossible" });
   }
 }
 
@@ -258,6 +341,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.method === "GET" && url.pathname === "/api/health") return jsonResponse(res, 200, { ok: true });
   if (req.method === "POST" && url.pathname === "/api/quotes") return createQuote(req, res);
+  if (req.method === "POST" && url.pathname === "/api/quote-pdf") return createQuotePdf(req, res);
   if (req.method === "GET" && url.pathname.startsWith("/devis/")) return serveQuote(req, res, url.pathname.split("/").pop());
   if (req.method === "GET") return serveStatic(req, res);
   jsonResponse(res, 405, { error: "Method not allowed" });

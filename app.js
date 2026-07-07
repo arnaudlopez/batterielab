@@ -938,6 +938,33 @@ async function createPublicQuote() {
   }
 }
 
+async function exportQuotePdf() {
+  const payload = publicQuotePayload();
+  setPublicQuoteStatus("Generation du PDF en cours...");
+  try {
+    const response = await fetch("/api/quote-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || "Erreur PDF");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const filename = `${(payload.quote.number || "devis-batterielab").toLowerCase().replace(/[^a-z0-9-]+/g, "-")}.pdf`;
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    setPublicQuoteStatus("PDF genere et telecharge.");
+  } catch (error) {
+    setPublicQuoteStatus(`Export PDF indisponible: ${error.message}`);
+  }
+}
+
 function readSaves() {
   try {
     const parsed = JSON.parse(localStorage.getItem(saveStorageKey) || "[]");
@@ -1183,6 +1210,7 @@ document.getElementById("resetButton").addEventListener("click", () => {
 document.getElementById("downloadSvg").addEventListener("click", exportSvg);
 document.getElementById("downloadJson").addEventListener("click", exportJson);
 document.getElementById("downloadQuoteHtml").addEventListener("click", exportQuoteHtml);
+document.getElementById("downloadQuotePdf").addEventListener("click", exportQuotePdf);
 document.getElementById("printQuote").addEventListener("click", printQuote);
 document.getElementById("printButton").addEventListener("click", () => window.print());
 document.getElementById("createPublicQuote").addEventListener("click", createPublicQuote);
