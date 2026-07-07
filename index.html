@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BatterieLab - Configurateur de pack</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="controls" aria-label="Parametres batterie">
+        <div class="brand-row">
+          <div>
+            <h1>BatterieLab</h1>
+            <p>Configurateur pack cellules</p>
+          </div>
+          <button class="icon-button" id="resetButton" type="button" title="Reinitialiser" aria-label="Reinitialiser">↺</button>
+        </div>
+
+        <section class="panel">
+          <h2>Architecture</h2>
+          <div class="grid two">
+            <label>
+              <span>Series</span>
+              <input id="series" type="number" min="1" max="32" step="1" value="13" />
+            </label>
+            <label>
+              <span>Paralleles</span>
+              <input id="parallel" type="number" min="1" max="20" step="1" value="8" />
+            </label>
+            <label>
+              <span>Cellule</span>
+              <select id="cellPreset">
+                <option value="18650">18650</option>
+                <option value="21700" selected>21700</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <label>
+              <span>Capacite cellule</span>
+              <input id="cellAh" type="number" min="0.5" max="8" step="0.1" value="5" />
+            </label>
+            <label>
+              <span>Diametre mm</span>
+              <input id="cellDiameter" type="number" min="10" max="40" step="0.1" value="21" />
+            </label>
+            <label>
+              <span>Hauteur mm</span>
+              <input id="cellHeight" type="number" min="30" max="100" step="0.1" value="70" />
+            </label>
+            <label>
+              <span>Espace mm</span>
+              <input id="spacing" type="number" min="0" max="10" step="0.1" value="1.8" />
+            </label>
+            <label>
+              <span>Jeu boitier mm</span>
+              <input id="casePadding" type="number" min="0" max="30" step="0.5" value="6" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-row">
+            <h2>BMS</h2>
+            <label class="switch">
+              <input id="bmsEnabled" type="checkbox" checked />
+              <span></span>
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              <span>Position</span>
+              <select id="bmsPosition">
+                <option value="side" selected>Cote</option>
+                <option value="top">Dessus</option>
+                <option value="end">Bout</option>
+              </select>
+            </label>
+            <label>
+              <span>Pose</span>
+              <select id="bmsMount">
+                <option value="flat" selected>A plat</option>
+                <option value="edge">Sur tranche</option>
+              </select>
+            </label>
+            <label>
+              <span>Rotation</span>
+              <select id="bmsRotation">
+                <option value="0" selected>0 deg</option>
+                <option value="90">90 deg</option>
+              </select>
+            </label>
+            <label>
+              <span>Epaisseur mm</span>
+              <input id="bmsThickness" type="number" min="2" max="30" step="0.5" value="10" />
+            </label>
+            <label>
+              <span>Longueur mm</span>
+              <input id="bmsLength" type="number" min="20" max="300" step="1" value="120" />
+            </label>
+            <label>
+              <span>Largeur mm</span>
+              <input id="bmsWidth" type="number" min="10" max="120" step="1" value="55" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Boitier</h2>
+          <div class="grid three">
+            <label>
+              <span>Long. mm</span>
+              <input id="caseLength" type="number" min="50" max="1000" step="1" value="330" />
+            </label>
+            <label>
+              <span>Larg. mm</span>
+              <input id="caseWidth" type="number" min="30" max="500" step="1" value="270" />
+            </label>
+            <label>
+              <span>Haut. mm</span>
+              <input id="caseHeight" type="number" min="30" max="250" step="1" value="95" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Couts</h2>
+          <div class="grid two">
+            <label>
+              <span>Prix cellule EUR</span>
+              <input id="cellCost" type="number" min="0" max="50" step="0.1" value="4.2" />
+            </label>
+            <label>
+              <span>Prix BMS EUR</span>
+              <input id="bmsCost" type="number" min="0" max="500" step="1" value="65" />
+            </label>
+            <label>
+              <span>Quincaillerie EUR</span>
+              <input id="hardwareCost" type="number" min="0" max="500" step="1" value="45" />
+            </label>
+            <label>
+              <span>Cout horaire EUR</span>
+              <input id="hourlyRate" type="number" min="0" max="200" step="1" value="45" />
+            </label>
+            <label>
+              <span>Heures</span>
+              <input id="laborHours" type="number" min="0" max="100" step="0.25" value="3.5" />
+            </label>
+            <label>
+              <span>Marge %</span>
+              <input id="markup" type="number" min="0" max="300" step="1" value="30" />
+            </label>
+          </div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="summary-strip" aria-label="Synthese">
+          <div class="metric"><span>Architecture</span><strong id="metricArchitecture">13S8P</strong></div>
+          <div class="metric"><span>Cellules</span><strong id="metricCells">104</strong></div>
+          <div class="metric"><span>Tension nominale</span><strong id="metricVoltage">46.8 V</strong></div>
+          <div class="metric"><span>Energie</span><strong id="metricEnergy">1872 Wh</strong></div>
+          <div class="metric"><span>Cout total</span><strong id="metricCost">704 EUR</strong></div>
+          <div class="metric"><span>Gain</span><strong id="metricGain">211 EUR</strong></div>
+        </header>
+
+        <section class="canvas-zone">
+          <div class="view-card view-card-large">
+            <div class="view-head">
+              <h2>Dessus</h2>
+              <span id="topScale">1 px = 1 mm</span>
+            </div>
+            <svg id="topView" class="drawing" role="img" aria-label="Vue du dessus du pack batterie"></svg>
+          </div>
+
+          <div class="side-stack">
+            <div class="view-card">
+              <div class="view-head">
+                <h2>Cote</h2>
+                <span id="sideDimensions">0 x 0</span>
+              </div>
+              <svg id="sideView" class="drawing short" role="img" aria-label="Vue cote longueur du pack batterie"></svg>
+            </div>
+            <div class="view-card">
+              <div class="view-head">
+                <h2>Largeur</h2>
+                <span id="widthDimensions">0 x 0</span>
+              </div>
+              <svg id="widthView" class="drawing short" role="img" aria-label="Vue cote largeur du pack batterie"></svg>
+            </div>
+          </div>
+        </section>
+
+        <section class="details-zone">
+          <div class="panel output-panel">
+            <h2>Dimensions</h2>
+            <div class="spec-grid">
+              <span>Pack estime</span><strong id="packDims">0 x 0 x 0 mm</strong>
+              <span>Boitier</span><strong id="caseDims">0 x 0 x 0 mm</strong>
+              <span>Jeu restant</span><strong id="clearance">0 / 0 / 0 mm</strong>
+              <span>Etat</span><strong id="fitStatus" class="status-pill">OK</strong>
+            </div>
+          </div>
+
+          <div class="panel output-panel">
+            <h2>Prix</h2>
+            <div class="spec-grid">
+              <span>Cellules</span><strong id="cellsSubtotal">0 EUR</strong>
+              <span>Main d'oeuvre</span><strong id="laborSubtotal">0 EUR</strong>
+              <span>Total revient</span><strong id="totalCost">0 EUR</strong>
+              <span>Prix conseille</span><strong id="salePrice">0 EUR</strong>
+            </div>
+          </div>
+
+          <div class="panel output-panel">
+            <h2>Actions</h2>
+            <div class="button-row">
+              <button id="downloadSvg" type="button">Exporter SVG</button>
+              <button id="downloadJson" type="button">Exporter JSON</button>
+              <button id="printButton" type="button">Imprimer</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
