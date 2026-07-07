@@ -231,35 +231,66 @@ function makeScaler(svg, modelWidth, modelHeight, margin = 28) {
   };
 }
 
+function drawEnvelopeLabels(svg, s, caseRect, packRect) {
+  svg.append(
+    svgEl("text", {
+      x: s.x(caseRect.x + 5),
+      y: s.y(caseRect.y + 8),
+      class: "small-svg",
+    }, "Boitier dispo"),
+  );
+  svg.append(
+    svgEl("text", {
+      x: s.x(packRect.x + 5),
+      y: s.y(packRect.y + packRect.h - 7),
+      class: "small-svg",
+    }, "Enveloppe requise"),
+  );
+}
+
 function drawTop(state, data) {
   const modelWidth = Math.max(state.caseLength, data.packLength);
   const modelHeight = Math.max(state.caseWidth, data.packWidth);
   const s = makeScaler(svgs.top, modelWidth, modelHeight, 34);
   outputs.topScale.textContent = `1 px = ${fixed(1 / s.scale, 1)} mm`;
 
+  const caseRect = {
+    x: (modelWidth - state.caseLength) / 2,
+    y: (modelHeight - state.caseWidth) / 2,
+    w: state.caseLength,
+    h: state.caseWidth,
+  };
+  const packRect = {
+    x: (modelWidth - data.packLength) / 2,
+    y: (modelHeight - data.packWidth) / 2,
+    w: data.packLength,
+    h: data.packWidth,
+  };
+
   svgs.top.append(
     svgEl("rect", {
-      x: s.x((modelWidth - state.caseLength) / 2),
-      y: s.y((modelHeight - state.caseWidth) / 2),
-      width: s.d(state.caseLength),
-      height: s.d(state.caseWidth),
+      x: s.x(caseRect.x),
+      y: s.y(caseRect.y),
+      width: s.d(caseRect.w),
+      height: s.d(caseRect.h),
       rx: 4,
       class: "case-outline",
     }),
   );
 
-  const originX = (modelWidth - data.packLength) / 2 + state.casePadding;
-  const originY = (modelHeight - data.packWidth) / 2 + state.casePadding;
+  const originX = packRect.x + state.casePadding;
+  const originY = packRect.y + state.casePadding;
   svgs.top.append(
     svgEl("rect", {
-      x: s.x((modelWidth - data.packLength) / 2),
-      y: s.y((modelHeight - data.packWidth) / 2),
-      width: s.d(data.packLength),
-      height: s.d(data.packWidth),
+      x: s.x(packRect.x),
+      y: s.y(packRect.y),
+      width: s.d(packRect.w),
+      height: s.d(packRect.h),
       rx: 4,
       class: "pack-shadow",
     }),
   );
+  drawEnvelopeLabels(svgs.top, s, caseRect, packRect);
 
   drawNickelAndCells(svgs.top, s, state, data, originX, originY, true);
   drawBmsTop(svgs.top, s, state, data, modelWidth, modelHeight, originX, originY);
@@ -473,13 +504,24 @@ function drawSide(state, data) {
   outputs.sideDimensions.textContent = `${fixed(data.packLength)} x ${fixed(data.packHeight)} mm`;
   const bms = data.bms;
 
-  const caseX = (modelWidth - state.caseLength) / 2;
-  const caseY = (modelHeight - state.caseHeight) / 2;
-  svgs.side.append(svgEl("rect", { x: s.x(caseX), y: s.y(caseY), width: s.d(state.caseLength), height: s.d(state.caseHeight), rx: 3, class: "case-outline" }));
+  const caseRect = {
+    x: (modelWidth - state.caseLength) / 2,
+    y: (modelHeight - state.caseHeight) / 2,
+    w: state.caseLength,
+    h: state.caseHeight,
+  };
+  svgs.side.append(svgEl("rect", { x: s.x(caseRect.x), y: s.y(caseRect.y), width: s.d(caseRect.w), height: s.d(caseRect.h), rx: 3, class: "case-outline" }));
 
-  const packX = (modelWidth - data.packLength) / 2;
-  const packY = (modelHeight - data.packHeight) / 2;
-  svgs.side.append(svgEl("rect", { x: s.x(packX), y: s.y(packY), width: s.d(data.packLength), height: s.d(data.packHeight), rx: 3, class: "pack-shadow" }));
+  const packRect = {
+    x: (modelWidth - data.packLength) / 2,
+    y: (modelHeight - data.packHeight) / 2,
+    w: data.packLength,
+    h: data.packHeight,
+  };
+  const packX = packRect.x;
+  const packY = packRect.y;
+  svgs.side.append(svgEl("rect", { x: s.x(packRect.x), y: s.y(packRect.y), width: s.d(packRect.w), height: s.d(packRect.h), rx: 3, class: "pack-shadow" }));
+  drawEnvelopeLabels(svgs.side, s, caseRect, packRect);
 
   const cellY = packY + state.casePadding + (state.bmsEnabled && state.bmsPosition === "top" ? bms.height + state.spacing : 0);
   const sideRows = data.staggered && state.parallel > 1 ? [1, 0] : [0];
@@ -515,13 +557,24 @@ function drawWidth(state, data) {
   outputs.widthDimensions.textContent = `${fixed(data.packWidth)} x ${fixed(data.packHeight)} mm`;
   const bms = data.bms;
 
-  const caseX = (modelWidth - state.caseWidth) / 2;
-  const caseY = (modelHeight - state.caseHeight) / 2;
-  svgs.width.append(svgEl("rect", { x: s.x(caseX), y: s.y(caseY), width: s.d(state.caseWidth), height: s.d(state.caseHeight), rx: 3, class: "case-outline" }));
+  const caseRect = {
+    x: (modelWidth - state.caseWidth) / 2,
+    y: (modelHeight - state.caseHeight) / 2,
+    w: state.caseWidth,
+    h: state.caseHeight,
+  };
+  svgs.width.append(svgEl("rect", { x: s.x(caseRect.x), y: s.y(caseRect.y), width: s.d(caseRect.w), height: s.d(caseRect.h), rx: 3, class: "case-outline" }));
 
-  const packX = (modelWidth - data.packWidth) / 2;
-  const packY = (modelHeight - data.packHeight) / 2;
-  svgs.width.append(svgEl("rect", { x: s.x(packX), y: s.y(packY), width: s.d(data.packWidth), height: s.d(data.packHeight), rx: 3, class: "pack-shadow" }));
+  const packRect = {
+    x: (modelWidth - data.packWidth) / 2,
+    y: (modelHeight - data.packHeight) / 2,
+    w: data.packWidth,
+    h: data.packHeight,
+  };
+  const packX = packRect.x;
+  const packY = packRect.y;
+  svgs.width.append(svgEl("rect", { x: s.x(packRect.x), y: s.y(packRect.y), width: s.d(packRect.w), height: s.d(packRect.h), rx: 3, class: "pack-shadow" }));
+  drawEnvelopeLabels(svgs.width, s, caseRect, packRect);
 
   const cellY = packY + state.casePadding + (state.bmsEnabled && state.bmsPosition === "top" ? bms.height + state.spacing : 0);
   for (let row = 0; row < state.parallel; row += 1) {
