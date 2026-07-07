@@ -371,6 +371,10 @@ body.hide-prices .price-sensitive {
   display: none !important;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 .hidden-file {
   display: none;
 }

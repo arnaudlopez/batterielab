@@ -30,6 +30,7 @@ const ids = [
   "quoteDate",
   "quoteValidity",
   "depositPercent",
+  "shippingCost",
   "companyName",
   "companyAddress",
   "companyLegal",
@@ -77,6 +78,8 @@ const outputs = Object.fromEntries(
     "quoteValidUntilOut",
     "quoteBatteryDetails",
     "quoteSalePrice",
+    "quoteShippingRow",
+    "quoteShippingPrice",
     "quotePaymentTerms",
     "quotePaypalUrlText",
     "quoteTotal",
@@ -173,6 +176,7 @@ function readState() {
     quoteDate: el.quoteDate.value,
     quoteValidity: Math.max(1, Math.round(num(el.quoteValidity, 30))),
     depositPercent: Math.max(0, Math.min(100, num(el.depositPercent, 30))),
+    shippingCost: Math.max(0, num(el.shippingCost, 0)),
     companyName: text(el.companyName),
     companyAddress: text(el.companyAddress),
     companyLegal: text(el.companyLegal),
@@ -243,6 +247,8 @@ function derive(state) {
   const laborSubtotal = state.hourlyRate * state.laborHours;
   const totalCost = cellsSubtotal + laborSubtotal + state.hardwareCost + (state.bmsEnabled ? state.bmsCost : 0);
   const salePrice = totalCost * (1 + state.markup / 100);
+  const quoteShipping = state.shippingCost;
+  const quoteTotal = salePrice + quoteShipping;
   const gain = salePrice - totalCost;
 
   const clearance = {
@@ -267,6 +273,8 @@ function derive(state) {
     laborSubtotal,
     totalCost,
     salePrice,
+    quoteShipping,
+    quoteTotal,
     gain,
     bms,
     staggered,
@@ -737,7 +745,7 @@ function safePaymentUrl(value) {
 function renderQuote(state, data) {
   const quoteDate = parseDateInput(state.quoteDate);
   const validUntil = addDays(quoteDate, state.quoteValidity);
-  const deposit = data.salePrice * (state.depositPercent / 100);
+  const deposit = data.quoteTotal * (state.depositPercent / 100);
   const layoutLabel = state.cellLayout === "staggered" ? "quinconce serre" : "grille droite";
   const bmsLabel = state.bmsEnabled ? `BMS ${state.bmsPosition}, ${state.bmsMount === "edge" ? "sur tranche" : "a plat"}, rotation ${state.bmsRotation} deg` : "sans BMS";
   const details = [
@@ -759,8 +767,10 @@ function renderQuote(state, data) {
   outputs.quoteValidUntilOut.textContent = `Valable jusqu'au ${formatDateFr(validUntil)}`;
   outputs.quoteBatteryDetails.textContent = details;
   outputs.quoteSalePrice.textContent = money(data.salePrice);
+  outputs.quoteShippingPrice.textContent = money(data.quoteShipping);
+  outputs.quoteShippingRow.classList.toggle("is-hidden", data.quoteShipping <= 0);
   setText(outputs.quotePaymentTerms, state.paymentTerms, "Conditions de paiement");
-  outputs.quoteTotal.textContent = money(data.salePrice);
+  outputs.quoteTotal.textContent = money(data.quoteTotal);
   outputs.quoteDeposit.textContent = `${money(deposit)} (${fixed(state.depositPercent)} %)`;
   setText(outputs.quoteLegalTerms, state.legalTerms, "Mentions devis / legales");
 
@@ -901,9 +911,11 @@ function publicQuotePayload() {
       paymentTerms: state.paymentTerms,
       legalTerms: state.legalTerms,
       paypalUrl: safePaymentUrl(state.paypalUrl),
-      salePrice: data.salePrice,
+      itemPrice: data.salePrice,
+      shippingCost: data.quoteShipping,
+      salePrice: data.quoteTotal,
       depositPercent: state.depositPercent,
-      depositAmount: data.salePrice * (state.depositPercent / 100),
+      depositAmount: data.quoteTotal * (state.depositPercent / 100),
     },
   };
 }

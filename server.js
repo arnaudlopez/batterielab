@@ -117,6 +117,10 @@ function smtpReady() {
 async function sendQuoteEmail(quote, url) {
   if (!smtpReady()) return { sent: false, message: "SMTP non configure" };
   if (!quote.quote?.customerEmail) return { sent: false, message: "email client manquant" };
+  const q = quote.quote || {};
+  const itemPrice = Number(q.itemPrice ?? q.salePrice ?? 0);
+  const shippingCost = Number(q.shippingCost || 0);
+  const totalPrice = Number(q.salePrice ?? itemPrice + shippingCost);
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -135,10 +139,11 @@ async function sendQuoteEmail(quote, url) {
     "Votre devis BatterieLab est disponible ici :",
     url,
     "",
-    `Total : ${money(quote.quote.salePrice)}`,
+    shippingCost > 0 ? `Frais d'envoi : ${money(shippingCost)}` : "",
+    `Total : ${money(totalPrice)}`,
     "",
     "Vous pouvez consulter les caracteristiques de la batterie et utiliser le lien PayPal depuis la page du devis.",
-  ].join("\n");
+  ].filter((line) => line !== "").join("\n");
 
   await transporter.sendMail({
     from: process.env.MAIL_FROM,
@@ -146,7 +151,7 @@ async function sendQuoteEmail(quote, url) {
     replyTo: process.env.MAIL_REPLY_TO || process.env.MAIL_FROM,
     subject,
     text,
-    html: `<p>Bonjour ${escapeHtml(quote.quote.customerName || "")},</p><p>Votre devis BatterieLab est disponible ici :</p><p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p><p>Total : <strong>${escapeHtml(money(quote.quote.salePrice))}</strong></p>`,
+    html: `<p>Bonjour ${escapeHtml(quote.quote.customerName || "")},</p><p>Votre devis BatterieLab est disponible ici :</p><p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>${shippingCost > 0 ? `<p>Frais d'envoi : <strong>${escapeHtml(money(shippingCost))}</strong></p>` : ""}<p>Total : <strong>${escapeHtml(money(totalPrice))}</strong></p>`,
   });
   return { sent: true, message: "envoye" };
 }
@@ -156,6 +161,13 @@ function publicQuoteHtml(quote, options = {}) {
   const state = quote.state || {};
   const results = quote.results || {};
   const paypalUrl = safeUrl(q.paypalUrl);
+  const itemPrice = Number(q.itemPrice ?? q.salePrice ?? 0);
+  const shippingCost = Number(q.shippingCost || 0);
+  const totalPrice = Number(q.salePrice ?? itemPrice + shippingCost);
+  const depositAmount = Number(q.depositAmount ?? totalPrice * (Number(q.depositPercent || 0) / 100));
+  const shippingRow = shippingCost > 0
+    ? `<tr><td>Frais d'envoi</td><td>Expedition au destinataire</td><td>${money(shippingCost)}</td></tr>`
+    : "";
   const logo = quote.logoDataUrl ? `<img class="logo" src="${quote.logoDataUrl}" alt="" />` : "";
   const topSvg = quote.topSvg || "";
 
@@ -207,11 +219,11 @@ function publicQuoteHtml(quote, options = {}) {
         </section>
         <table>
           <thead><tr><th>Description</th><th>Details</th><th>Total</th></tr></thead>
-          <tbody><tr><td>Pack batterie sur mesure</td><td>${escapeHtml(`${state.series || ""}S${state.parallel || ""}P - ${results.cellCount || ""} cellules ${state.cellPreset || ""}`)}<br>${fixed(results.capacityAh)} Ah - ${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh</td><td>${money(q.salePrice)}</td></tr></tbody>
+          <tbody><tr><td>Pack batterie sur mesure</td><td>${escapeHtml(`${state.series || ""}S${state.parallel || ""}P - ${results.cellCount || ""} cellules ${state.cellPreset || ""}`)}<br>${fixed(results.capacityAh)} Ah - ${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh</td><td>${money(itemPrice)}</td></tr>${shippingRow}</tbody>
         </table>
         <section class="totals">
           <div><h3>Paiement</h3><p>${escapeHtml(q.paymentTerms || "")}</p>${paypalUrl ? `<a class="paypal" href="${escapeHtml(paypalUrl)}" target="_blank" rel="noopener"><span class="paypal-mark"><span>Pay</span><span>Pal</span></span><span>Payer avec PayPal</span></a><p class="payment-url">Lien de paiement : ${escapeHtml(paypalUrl)}</p>` : ""}</div>
-          <div class="total-box"><span>Total devis</span><strong>${money(q.salePrice)}</strong><span>Acompte</span><strong>${money(q.depositAmount)} (${fixed(q.depositPercent)} %)</strong></div>
+          <div class="total-box"><span>Total devis</span><strong>${money(totalPrice)}</strong><span>Acompte</span><strong>${money(depositAmount)} (${fixed(q.depositPercent)} %)</strong></div>
         </section>
         <section class="legal"><h3>Mentions</h3><p>${escapeHtml(q.legalTerms || "")}</p></section>
       </article>

@@ -195,6 +195,10 @@
               <span>Acompte %</span>
               <input id="depositPercent" type="number" min="0" max="100" step="1" value="30" />
             </label>
+            <label class="price-sensitive">
+              <span>Frais d'envoi EUR</span>
+              <input id="shippingCost" type="number" min="0" max="2000" step="1" value="0" />
+            </label>
           </div>
           <div class="form-stack">
             <label>
@@ -408,6 +412,11 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
                     <td>Pack batterie sur mesure</td>
                     <td id="quoteBatteryDetails">Configuration batterie</td>
                     <td id="quoteSalePrice" class="price-sensitive">0 EUR</td>
+                  </tr>
+                  <tr id="quoteShippingRow" class="price-sensitive is-hidden">
+                    <td>Frais d'envoi</td>
+                    <td>Expedition au destinataire</td>
+                    <td id="quoteShippingPrice">0 EUR</td>
                   </tr>
                 </tbody>
               </table>
