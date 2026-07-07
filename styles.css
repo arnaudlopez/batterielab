@@ -754,12 +754,6 @@ body.hide-prices .price-sensitive {
     padding: 0;
   }
 
-  .paypal-link {
-    background: #fff;
-    border: 1px solid #16202a;
-    color: #16202a;
-  }
-
   .paypal-mark {
     background: #fff;
     color: #003087;
