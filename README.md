@@ -6,6 +6,7 @@ Configurateur web pour designer un pack batterie a cellules cylindriques.
 
 - Architecture configurable en series/paralleles, par exemple `13S8P`.
 - Presets cellules `18650`, `21700` ou dimensions custom.
+- Arrangement des cellules en grille droite ou en quinconce serre.
 - BMS activable, positionnable et orientable a plat ou sur tranche.
 - Vues SVG live du pack en dessus, cote et largeur.
 - Controle d'encombrement par rapport au boitier.

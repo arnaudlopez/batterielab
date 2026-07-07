@@ -3,6 +3,7 @@ const ids = [
   "parallel",
   "cellPreset",
   "cellAh",
+  "cellLayout",
   "cellDiameter",
   "cellHeight",
   "spacing",
@@ -84,6 +85,7 @@ function readState() {
     parallel: Math.max(1, Math.round(num(el.parallel, 8))),
     cellPreset: el.cellPreset.value,
     cellAh: Math.max(0.1, num(el.cellAh, 5)),
+    cellLayout: el.cellLayout.value,
     cellDiameter: Math.max(1, num(el.cellDiameter, 21.2)),
     cellHeight: Math.max(1, num(el.cellHeight, 70)),
     spacing: Math.max(0, num(el.spacing, 1.8)),
@@ -123,8 +125,12 @@ function bmsGeometry(state) {
 
 function derive(state) {
   const cellPitch = state.cellDiameter + state.spacing;
-  const cellBlockLength = state.series * state.cellDiameter + Math.max(0, state.series - 1) * state.spacing;
-  const cellBlockWidth = state.parallel * state.cellDiameter + Math.max(0, state.parallel - 1) * state.spacing;
+  const staggered = state.cellLayout === "staggered";
+  const rowPitch = staggered ? cellPitch * Math.sqrt(3) / 2 : cellPitch;
+  const rowOffset = staggered ? cellPitch / 2 : 0;
+  const maxRowOffset = state.parallel > 1 ? rowOffset : 0;
+  const cellBlockLength = state.series * state.cellDiameter + Math.max(0, state.series - 1) * state.spacing + maxRowOffset;
+  const cellBlockWidth = state.cellDiameter + Math.max(0, state.parallel - 1) * rowPitch;
   const pad = state.casePadding * 2;
   const bms = bmsGeometry(state);
 
@@ -183,9 +189,13 @@ function derive(state) {
     salePrice,
     gain,
     bms,
+    staggered,
     packLength,
     packWidth,
     packHeight,
+    rowPitch,
+    rowOffset,
+    maxRowOffset,
     clearance,
     minClearance,
   };
@@ -251,39 +261,44 @@ function drawTop(state, data) {
     }),
   );
 
-  drawNickelAndCells(svgs.top, s, state, originX, originY, true);
+  drawNickelAndCells(svgs.top, s, state, data, originX, originY, true);
   drawBmsTop(svgs.top, s, state, data, modelWidth, modelHeight, originX, originY);
   drawMainLeads(svgs.top, s, state, data, modelWidth, modelHeight, originX, originY);
 }
 
-function drawNickelAndCells(svg, s, state, originX, originY, withLabels) {
+function cellCenter(state, data, originX, originY, col, row) {
+  const radius = state.cellDiameter / 2;
+  return {
+    x: originX + radius + col * data.cellPitch + (row % 2) * data.rowOffset,
+    y: originY + radius + row * data.rowPitch,
+  };
+}
+
+function drawNickelAndCells(svg, s, state, data, originX, originY, withLabels) {
   const radius = state.cellDiameter / 2;
   for (let col = 0; col < state.series; col += 1) {
-    const x = originX + radius + col * (state.cellDiameter + state.spacing);
-    const topY = originY + radius;
-    const bottomY = originY + radius + (state.parallel - 1) * (state.cellDiameter + state.spacing);
+    const points = [];
+    for (let row = 0; row < state.parallel; row += 1) {
+      points.push(cellCenter(state, data, originX, originY, col, row));
+    }
     svg.append(
-      svgEl("line", {
-        x1: s.x(x),
-        y1: s.y(topY),
-        x2: s.x(x),
-        y2: s.y(bottomY),
+      svgEl("polyline", {
+        points: points.map((point) => `${s.x(point.x)},${s.y(point.y)}`).join(" "),
         class: "nickel",
       }),
     );
   }
 
   for (let col = 0; col < state.series - 1; col += 1) {
-    const x1 = originX + radius + col * (state.cellDiameter + state.spacing);
-    const x2 = originX + radius + (col + 1) * (state.cellDiameter + state.spacing);
     const row = col % 2 === 0 ? state.parallel - 1 : 0;
-    const y = originY + radius + row * (state.cellDiameter + state.spacing);
+    const start = cellCenter(state, data, originX, originY, col, row);
+    const end = cellCenter(state, data, originX, originY, col + 1, row);
     svg.append(
       svgEl("line", {
-        x1: s.x(x1),
-        y1: s.y(y),
-        x2: s.x(x2),
-        y2: s.y(y),
+        x1: s.x(start.x),
+        y1: s.y(start.y),
+        x2: s.x(end.x),
+        y2: s.y(end.y),
         class: "nickel",
       }),
     );
@@ -291,8 +306,7 @@ function drawNickelAndCells(svg, s, state, originX, originY, withLabels) {
 
   for (let col = 0; col < state.series; col += 1) {
     for (let row = 0; row < state.parallel; row += 1) {
-      const x = originX + radius + col * (state.cellDiameter + state.spacing);
-      const y = originY + radius + row * (state.cellDiameter + state.spacing);
+      const { x, y } = cellCenter(state, data, originX, originY, col, row);
       const positive = (col + row) % 2 === 0;
       svg.append(
         svgEl("circle", {
@@ -320,11 +334,12 @@ function drawNickelAndCells(svg, s, state, originX, originY, withLabels) {
       );
     }
     if (withLabels) {
+      const labelPoint = cellCenter(state, data, originX, originY, col, 0);
       svg.append(
         svgEl(
           "text",
           {
-            x: s.x(originX + radius + col * (state.cellDiameter + state.spacing)),
+            x: s.x(labelPoint.x),
             y: s.y(originY - Math.max(5, state.spacing + 2)),
             class: "small-svg",
             "text-anchor": "middle",
@@ -412,8 +427,10 @@ function drawBmsTop(svg, s, state, data, modelWidth, modelHeight, originX, origi
   const connectorY = rect.y + rect.h * 0.5;
   for (let col = 0; col <= state.series; col += 1) {
     const cellCol = Math.min(Math.max(col - 1, 0), state.series - 1);
-    const x = originX + state.cellDiameter / 2 + cellCol * (state.cellDiameter + state.spacing);
-    const y = originY + (col % 2 === 0 ? state.cellDiameter * 0.18 : data.cellBlockWidth - state.cellDiameter * 0.18);
+    const row = col % 2 === 0 ? 0 : state.parallel - 1;
+    const point = cellCenter(state, data, originX, originY, cellCol, row);
+    const x = point.x;
+    const y = point.y + (row === 0 ? -state.cellDiameter * 0.32 : state.cellDiameter * 0.32);
     const hue = Math.round((col / Math.max(1, state.series)) * 260);
     svg.append(
       svgEl("path", {
@@ -426,15 +443,8 @@ function drawBmsTop(svg, s, state, data, modelWidth, modelHeight, originX, origi
 }
 
 function drawMainLeads(svg, s, state, data, modelWidth, modelHeight, originX, originY) {
-  const radius = state.cellDiameter / 2;
-  const negative = {
-    x: originX + radius,
-    y: originY + radius,
-  };
-  const positive = {
-    x: originX + radius + (state.series - 1) * (state.cellDiameter + state.spacing),
-    y: originY + radius + (state.parallel - 1) * (state.cellDiameter + state.spacing),
-  };
+  const negative = cellCenter(state, data, originX, originY, 0, 0);
+  const positive = cellCenter(state, data, originX, originY, state.series - 1, state.parallel - 1);
   const exitX = (modelWidth + state.caseLength) / 2 - state.casePadding;
   const exitY = (modelHeight - state.caseWidth) / 2 + state.casePadding;
 
@@ -472,9 +482,21 @@ function drawSide(state, data) {
   svgs.side.append(svgEl("rect", { x: s.x(packX), y: s.y(packY), width: s.d(data.packLength), height: s.d(data.packHeight), rx: 3, class: "pack-shadow" }));
 
   const cellY = packY + state.casePadding + (state.bmsEnabled && state.bmsPosition === "top" ? bms.height + state.spacing : 0);
-  for (let col = 0; col < state.series; col += 1) {
-    const x = packX + state.casePadding + col * (state.cellDiameter + state.spacing);
-    svgs.side.append(svgEl("rect", { x: s.x(x), y: s.y(cellY), width: s.d(state.cellDiameter), height: s.d(state.cellHeight), rx: s.d(state.cellDiameter / 2), fill: col % 2 === 0 ? "var(--cell-a)" : "var(--cell-b)", class: "cell-outline" }));
+  const sideRows = data.staggered && state.parallel > 1 ? [1, 0] : [0];
+  for (const row of sideRows) {
+    for (let col = 0; col < state.series; col += 1) {
+      const x = packX + state.casePadding + col * data.cellPitch + (row % 2) * data.rowOffset;
+      svgs.side.append(svgEl("rect", {
+        x: s.x(x),
+        y: s.y(cellY + row * Math.min(4, state.spacing + 1)),
+        width: s.d(state.cellDiameter),
+        height: s.d(state.cellHeight),
+        rx: s.d(state.cellDiameter / 2),
+        fill: col % 2 === 0 ? "var(--cell-a)" : "var(--cell-b)",
+        class: "cell-outline",
+        opacity: row === 0 ? 1 : 0.62,
+      }));
+    }
   }
 
   if (state.bmsEnabled) {
@@ -503,7 +525,7 @@ function drawWidth(state, data) {
 
   const cellY = packY + state.casePadding + (state.bmsEnabled && state.bmsPosition === "top" ? bms.height + state.spacing : 0);
   for (let row = 0; row < state.parallel; row += 1) {
-    const x = packX + state.casePadding + row * (state.cellDiameter + state.spacing);
+    const x = packX + state.casePadding + row * data.rowPitch;
     svgs.width.append(svgEl("rect", { x: s.x(x), y: s.y(cellY), width: s.d(state.cellDiameter), height: s.d(state.cellHeight), rx: s.d(state.cellDiameter / 2), fill: row % 2 === 0 ? "var(--cell-a)" : "var(--cell-b)", class: "cell-outline" }));
   }
 
