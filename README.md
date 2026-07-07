@@ -8,6 +8,7 @@ Configurateur web pour designer un pack batterie a cellules cylindriques.
 - Presets cellules `18650`, `21700` ou dimensions custom.
 - Arrangement des cellules en grille droite ou en quinconce serre.
 - Calcul du courant de decharge max pack depuis le courant max par cellule.
+- Estimation du poids total depuis le poids des cellules, du BMS et du boitier/accessoires.
 - BMS activable, positionnable et orientable a plat ou sur tranche.
 - Vues SVG live du pack en dessus, cote et largeur.
 - Controle d'encombrement par rapport au boitier.

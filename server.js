@@ -57,6 +57,10 @@ function money(value) {
   return `${Math.round(Number(value || 0)).toLocaleString("fr-FR")} EUR`;
 }
 
+function weight(valueG) {
+  return `${fixed(Number(valueG || 0) / 1000, 2)} kg`;
+}
+
 async function fileExists(filePath) {
   try {
     await fs.access(filePath);
@@ -165,6 +169,9 @@ function publicQuoteHtml(quote, options = {}) {
   const shippingCost = Number(q.shippingCost || 0);
   const totalPrice = Number(q.salePrice ?? itemPrice + shippingCost);
   const depositAmount = Number(q.depositAmount ?? totalPrice * (Number(q.depositPercent || 0) / 100));
+  const totalWeightG = Number(results.totalWeightG || 0);
+  const weightSpec = totalWeightG > 0 ? `<span>Poids estime</span><strong>${weight(totalWeightG)}</strong>` : "";
+  const weightDetail = totalWeightG > 0 ? `<br>Poids estime : ${weight(totalWeightG)}` : "";
   const shippingRow = shippingCost > 0
     ? `<tr><td>Frais d'envoi</td><td>Expedition au destinataire</td><td>${money(shippingCost)}</td></tr>`
     : "";
@@ -213,13 +220,14 @@ function publicQuoteHtml(quote, options = {}) {
             <span>Cellules</span><strong>${escapeHtml(String(results.cellCount || ""))}</strong>
             <span>Tension nominale</span><strong>${fixed(results.nominalVoltage)} V</strong>
             <span>Energie</span><strong>${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh</strong>
+            ${weightSpec}
             <span>Decharge max</span><strong>${fixed(results.maxDischargeA)} A</strong>
             <span>Enveloppe</span><strong>${fixed(results.packLength)} x ${fixed(results.packWidth)} x ${fixed(results.packHeight)} mm</strong>
           </div>
         </section>
         <table>
           <thead><tr><th>Description</th><th>Details</th><th>Total</th></tr></thead>
-          <tbody><tr><td>Pack batterie sur mesure</td><td>${escapeHtml(`${state.series || ""}S${state.parallel || ""}P - ${results.cellCount || ""} cellules ${state.cellPreset || ""}`)}<br>${fixed(results.capacityAh)} Ah - ${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh</td><td>${money(itemPrice)}</td></tr>${shippingRow}</tbody>
+          <tbody><tr><td>Pack batterie sur mesure</td><td>${escapeHtml(`${state.series || ""}S${state.parallel || ""}P - ${results.cellCount || ""} cellules ${state.cellPreset || ""}`)}<br>${fixed(results.capacityAh)} Ah - ${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh${weightDetail}</td><td>${money(itemPrice)}</td></tr>${shippingRow}</tbody>
         </table>
         <section class="totals">
           <div><h3>Paiement</h3><p>${escapeHtml(q.paymentTerms || "")}</p>${paypalUrl ? `<a class="paypal" href="${escapeHtml(paypalUrl)}" target="_blank" rel="noopener"><span class="paypal-mark"><span>Pay</span><span>Pal</span></span><span>Payer avec PayPal</span></a><p class="payment-url">Lien de paiement : ${escapeHtml(paypalUrl)}</p>` : ""}</div>

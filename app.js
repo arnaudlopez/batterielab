@@ -5,6 +5,7 @@ const ids = [
   "cellPreset",
   "cellAh",
   "cellMaxDischarge",
+  "cellWeight",
   "cellLayout",
   "cellDiameter",
   "cellHeight",
@@ -17,9 +18,11 @@ const ids = [
   "bmsThickness",
   "bmsLength",
   "bmsWidth",
+  "bmsWeight",
   "caseLength",
   "caseWidth",
   "caseHeight",
+  "enclosureWeight",
   "cellCost",
   "bmsCost",
   "hardwareCost",
@@ -50,6 +53,7 @@ const outputs = Object.fromEntries(
     "metricCells",
     "metricVoltage",
     "metricEnergy",
+    "metricWeight",
     "metricMaxDischarge",
     "metricCost",
     "metricGain",
@@ -58,6 +62,7 @@ const outputs = Object.fromEntries(
     "widthDimensions",
     "packDims",
     "caseDims",
+    "packWeight",
     "clearance",
     "fitStatus",
     "cellMaxDischargeOut",
@@ -100,8 +105,8 @@ const publicQuoteUi = {
 };
 
 const presets = {
-  "18650": { diameter: 18.4, height: 65, ah: 3.2, dischargeA: 10 },
-  "21700": { diameter: 21.2, height: 70, ah: 5, dischargeA: 15 },
+  "18650": { diameter: 18.4, height: 65, ah: 3.2, dischargeA: 10, weightG: 45 },
+  "21700": { diameter: 21.2, height: 70, ah: 5, dischargeA: 15, weightG: 70 },
 };
 
 let logoDataUrl = "";
@@ -132,6 +137,10 @@ function power(value) {
   return `${Math.round(value).toLocaleString("fr-FR")} W`;
 }
 
+function weight(valueG) {
+  return `${fixed(valueG / 1000, 2)} kg`;
+}
+
 function text(input) {
   return input.value.trim();
 }
@@ -151,6 +160,7 @@ function readState() {
     cellPreset: el.cellPreset.value,
     cellAh: Math.max(0.1, num(el.cellAh, 5)),
     cellMaxDischarge: Math.max(0, num(el.cellMaxDischarge, 15)),
+    cellWeight: Math.max(0, num(el.cellWeight, 70)),
     cellLayout: el.cellLayout.value,
     cellDiameter: Math.max(1, num(el.cellDiameter, 21.2)),
     cellHeight: Math.max(1, num(el.cellHeight, 70)),
@@ -163,9 +173,11 @@ function readState() {
     bmsThickness: Math.max(0, num(el.bmsThickness, 10)),
     bmsLength: Math.max(1, num(el.bmsLength, 120)),
     bmsWidth: Math.max(1, num(el.bmsWidth, 55)),
+    bmsWeight: Math.max(0, num(el.bmsWeight, 120)),
     caseLength: Math.max(1, num(el.caseLength, 330)),
     caseWidth: Math.max(1, num(el.caseWidth, 270)),
     caseHeight: Math.max(1, num(el.caseHeight, 95)),
+    enclosureWeight: Math.max(0, num(el.enclosureWeight, 500)),
     cellCost: Math.max(0, num(el.cellCost, 4.2)),
     bmsCost: Math.max(0, num(el.bmsCost, 65)),
     hardwareCost: Math.max(0, num(el.hardwareCost, 45)),
@@ -243,6 +255,9 @@ function derive(state) {
   const energyWh = nominalVoltage * capacityAh;
   const maxDischargeA = state.parallel * state.cellMaxDischarge;
   const maxPowerW = nominalVoltage * maxDischargeA;
+  const cellsWeightG = cellCount * state.cellWeight;
+  const bmsWeightG = state.bmsEnabled ? state.bmsWeight : 0;
+  const totalWeightG = cellsWeightG + bmsWeightG + state.enclosureWeight;
   const cellsSubtotal = cellCount * state.cellCost;
   const laborSubtotal = state.hourlyRate * state.laborHours;
   const totalCost = cellsSubtotal + laborSubtotal + state.hardwareCost + (state.bmsEnabled ? state.bmsCost : 0);
@@ -269,6 +284,9 @@ function derive(state) {
     energyWh,
     maxDischargeA,
     maxPowerW,
+    cellsWeightG,
+    bmsWeightG,
+    totalWeightG,
     cellsSubtotal,
     laborSubtotal,
     totalCost,
@@ -753,6 +771,7 @@ function renderQuote(state, data) {
     `${fixed(data.nominalVoltage)} V nominal / ${fixed(data.maxVoltage)} V pleine charge`,
     `${fixed(data.capacityAh)} Ah - ${Math.round(data.energyWh).toLocaleString("fr-FR")} Wh`,
     `Decharge max estimee : ${amps(data.maxDischargeA)} (${power(data.maxPowerW)})`,
+    `Poids estime : ${weight(data.totalWeightG)}`,
     `Dimensions enveloppe : ${fixed(data.packLength)} x ${fixed(data.packWidth)} x ${fixed(data.packHeight)} mm`,
     `Arrangement : ${layoutLabel} - ${bmsLabel}`,
   ].join("\n");
@@ -795,12 +814,14 @@ function render() {
   outputs.metricCells.textContent = data.cellCount.toLocaleString("fr-FR");
   outputs.metricVoltage.textContent = `${fixed(data.nominalVoltage)} V`;
   outputs.metricEnergy.textContent = `${Math.round(data.energyWh).toLocaleString("fr-FR")} Wh`;
+  outputs.metricWeight.textContent = weight(data.totalWeightG);
   outputs.metricMaxDischarge.textContent = amps(data.maxDischargeA);
   outputs.metricCost.textContent = money(data.totalCost);
   outputs.metricGain.textContent = money(data.gain);
 
   outputs.packDims.textContent = `${fixed(data.packLength)} x ${fixed(data.packWidth)} x ${fixed(data.packHeight)} mm`;
   outputs.caseDims.textContent = `${fixed(state.caseLength)} x ${fixed(state.caseWidth)} x ${fixed(state.caseHeight)} mm`;
+  outputs.packWeight.textContent = weight(data.totalWeightG);
   outputs.clearance.textContent = `${fixed(data.clearance.length)} / ${fixed(data.clearance.width)} / ${fixed(data.clearance.height)} mm`;
   outputs.fitStatus.textContent = data.minClearance < 0 ? "Depasse" : data.minClearance < 5 ? "Serre" : "OK";
   outputs.fitStatus.className = `status-pill ${data.minClearance < 0 ? "danger" : data.minClearance < 5 ? "warning" : ""}`.trim();
@@ -826,6 +847,7 @@ function applyPreset() {
   el.cellHeight.value = preset.height;
   el.cellAh.value = preset.ah;
   el.cellMaxDischarge.value = preset.dischargeA;
+  el.cellWeight.value = preset.weightG;
 }
 
 function download(filename, content, mime) {

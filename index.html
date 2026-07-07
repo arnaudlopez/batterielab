@@ -57,6 +57,10 @@
               <input id="cellMaxDischarge" type="number" min="0" max="200" step="0.5" value="15" />
             </label>
             <label>
+              <span>Poids cellule g</span>
+              <input id="cellWeight" type="number" min="0" max="300" step="0.1" value="70" />
+            </label>
+            <label>
               <span>Arrangement</span>
               <select id="cellLayout">
                 <option value="grid" selected>Grille droite</option>
@@ -125,6 +129,10 @@
               <span>Largeur mm</span>
               <input id="bmsWidth" type="number" min="10" max="120" step="1" value="55" />
             </label>
+            <label>
+              <span>Poids BMS g</span>
+              <input id="bmsWeight" type="number" min="0" max="1000" step="1" value="120" />
+            </label>
           </div>
         </section>
 
@@ -142,6 +150,10 @@
             <label>
               <span>Haut. mm</span>
               <input id="caseHeight" type="number" min="30" max="250" step="1" value="95" />
+            </label>
+            <label>
+              <span>Boitier/access. g</span>
+              <input id="enclosureWeight" type="number" min="0" max="10000" step="10" value="500" />
             </label>
           </div>
         </section>
@@ -289,6 +301,7 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
           <div class="metric"><span>Cellules</span><strong id="metricCells">104</strong></div>
           <div class="metric"><span>Tension nominale</span><strong id="metricVoltage">46.8 V</strong></div>
           <div class="metric"><span>Energie</span><strong id="metricEnergy">1872 Wh</strong></div>
+          <div class="metric"><span>Poids total</span><strong id="metricWeight">7.9 kg</strong></div>
           <div class="metric"><span>Decharge max</span><strong id="metricMaxDischarge">120 A</strong></div>
           <div class="metric price-sensitive"><span>Cout total</span><strong id="metricCost">704 EUR</strong></div>
           <div class="metric price-sensitive"><span>Gain</span><strong id="metricGain">211 EUR</strong></div>
@@ -327,6 +340,7 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
             <div class="spec-grid">
               <span>Enveloppe requise</span><strong id="packDims">0 x 0 x 0 mm</strong>
               <span>Boitier</span><strong id="caseDims">0 x 0 x 0 mm</strong>
+              <span>Poids total</span><strong id="packWeight">0 kg</strong>
               <span>Jeu restant</span><strong id="clearance">0 / 0 / 0 mm</strong>
               <span>Etat</span><strong id="fitStatus" class="status-pill">OK</strong>
             </div>
