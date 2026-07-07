@@ -3,6 +3,7 @@ const ids = [
   "parallel",
   "cellPreset",
   "cellAh",
+  "cellMaxDischarge",
   "cellLayout",
   "cellDiameter",
   "cellHeight",
@@ -34,6 +35,7 @@ const outputs = Object.fromEntries(
     "metricCells",
     "metricVoltage",
     "metricEnergy",
+    "metricMaxDischarge",
     "metricCost",
     "metricGain",
     "topScale",
@@ -43,6 +45,10 @@ const outputs = Object.fromEntries(
     "caseDims",
     "clearance",
     "fitStatus",
+    "cellMaxDischargeOut",
+    "packMaxDischarge",
+    "packMaxPower",
+    "maxVoltage",
     "cellsSubtotal",
     "laborSubtotal",
     "totalCost",
@@ -57,8 +63,8 @@ const svgs = {
 };
 
 const presets = {
-  "18650": { diameter: 18.4, height: 65, ah: 3.2 },
-  "21700": { diameter: 21.2, height: 70, ah: 5 },
+  "18650": { diameter: 18.4, height: 65, ah: 3.2, dischargeA: 10 },
+  "21700": { diameter: 21.2, height: 70, ah: 5, dischargeA: 15 },
 };
 
 const initialState = readState();
@@ -70,6 +76,15 @@ function num(input, fallback = 0) {
 
 function money(value) {
   return `${Math.round(value).toLocaleString("fr-FR")} EUR`;
+}
+
+function amps(value) {
+  return `${fixed(value, 1)} A`;
+}
+
+function power(value) {
+  if (value >= 1000) return `${fixed(value / 1000, 1)} kW`;
+  return `${Math.round(value).toLocaleString("fr-FR")} W`;
 }
 
 function fixed(value, digits = 1) {
@@ -85,6 +100,7 @@ function readState() {
     parallel: Math.max(1, Math.round(num(el.parallel, 8))),
     cellPreset: el.cellPreset.value,
     cellAh: Math.max(0.1, num(el.cellAh, 5)),
+    cellMaxDischarge: Math.max(0, num(el.cellMaxDischarge, 15)),
     cellLayout: el.cellLayout.value,
     cellDiameter: Math.max(1, num(el.cellDiameter, 21.2)),
     cellHeight: Math.max(1, num(el.cellHeight, 70)),
@@ -161,6 +177,8 @@ function derive(state) {
   const maxVoltage = state.series * 4.2;
   const capacityAh = state.parallel * state.cellAh;
   const energyWh = nominalVoltage * capacityAh;
+  const maxDischargeA = state.parallel * state.cellMaxDischarge;
+  const maxPowerW = nominalVoltage * maxDischargeA;
   const cellsSubtotal = cellCount * state.cellCost;
   const laborSubtotal = state.hourlyRate * state.laborHours;
   const totalCost = cellsSubtotal + laborSubtotal + state.hardwareCost + (state.bmsEnabled ? state.bmsCost : 0);
@@ -183,6 +201,8 @@ function derive(state) {
     maxVoltage,
     capacityAh,
     energyWh,
+    maxDischargeA,
+    maxPowerW,
     cellsSubtotal,
     laborSubtotal,
     totalCost,
@@ -623,6 +643,7 @@ function render() {
   outputs.metricCells.textContent = data.cellCount.toLocaleString("fr-FR");
   outputs.metricVoltage.textContent = `${fixed(data.nominalVoltage)} V`;
   outputs.metricEnergy.textContent = `${Math.round(data.energyWh).toLocaleString("fr-FR")} Wh`;
+  outputs.metricMaxDischarge.textContent = amps(data.maxDischargeA);
   outputs.metricCost.textContent = money(data.totalCost);
   outputs.metricGain.textContent = money(data.gain);
 
@@ -631,6 +652,10 @@ function render() {
   outputs.clearance.textContent = `${fixed(data.clearance.length)} / ${fixed(data.clearance.width)} / ${fixed(data.clearance.height)} mm`;
   outputs.fitStatus.textContent = data.minClearance < 0 ? "Depasse" : data.minClearance < 5 ? "Serre" : "OK";
   outputs.fitStatus.className = `status-pill ${data.minClearance < 0 ? "danger" : data.minClearance < 5 ? "warning" : ""}`.trim();
+  outputs.cellMaxDischargeOut.textContent = amps(state.cellMaxDischarge);
+  outputs.packMaxDischarge.textContent = amps(data.maxDischargeA);
+  outputs.packMaxPower.textContent = power(data.maxPowerW);
+  outputs.maxVoltage.textContent = `${fixed(data.maxVoltage)} V`;
   outputs.cellsSubtotal.textContent = money(data.cellsSubtotal);
   outputs.laborSubtotal.textContent = money(data.laborSubtotal);
   outputs.totalCost.textContent = money(data.totalCost);
@@ -647,6 +672,7 @@ function applyPreset() {
   el.cellDiameter.value = preset.diameter;
   el.cellHeight.value = preset.height;
   el.cellAh.value = preset.ah;
+  el.cellMaxDischarge.value = preset.dischargeA;
 }
 
 function download(filename, content, mime) {

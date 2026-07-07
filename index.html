@@ -42,6 +42,10 @@
               <input id="cellAh" type="number" min="0.5" max="8" step="0.1" value="5" />
             </label>
             <label>
+              <span>Decharge max cellule</span>
+              <input id="cellMaxDischarge" type="number" min="0" max="200" step="0.5" value="15" />
+            </label>
+            <label>
               <span>Arrangement</span>
               <select id="cellLayout">
                 <option value="grid" selected>Grille droite</option>
@@ -168,6 +172,7 @@
           <div class="metric"><span>Cellules</span><strong id="metricCells">104</strong></div>
           <div class="metric"><span>Tension nominale</span><strong id="metricVoltage">46.8 V</strong></div>
           <div class="metric"><span>Energie</span><strong id="metricEnergy">1872 Wh</strong></div>
+          <div class="metric"><span>Decharge max</span><strong id="metricMaxDischarge">120 A</strong></div>
           <div class="metric"><span>Cout total</span><strong id="metricCost">704 EUR</strong></div>
           <div class="metric"><span>Gain</span><strong id="metricGain">211 EUR</strong></div>
         </header>
@@ -207,6 +212,16 @@
               <span>Boitier</span><strong id="caseDims">0 x 0 x 0 mm</strong>
               <span>Jeu restant</span><strong id="clearance">0 / 0 / 0 mm</strong>
               <span>Etat</span><strong id="fitStatus" class="status-pill">OK</strong>
+            </div>
+          </div>
+
+          <div class="panel output-panel">
+            <h2>Electrique</h2>
+            <div class="spec-grid">
+              <span>Courant cellule max</span><strong id="cellMaxDischargeOut">0 A</strong>
+              <span>Courant pack max</span><strong id="packMaxDischarge">0 A</strong>
+              <span>Puissance nominale max</span><strong id="packMaxPower">0 W</strong>
+              <span>Tension pleine charge</span><strong id="maxVoltage">0 V</strong>
             </div>
           </div>
 

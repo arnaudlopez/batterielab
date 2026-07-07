@@ -197,7 +197,7 @@ button:focus-visible {
 
 .summary-strip {
   display: grid;
-  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -267,7 +267,7 @@ button:focus-visible {
 
 .details-zone {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 16px;
   margin-top: 16px;
 }
