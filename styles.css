@@ -506,8 +506,10 @@ button:hover {
 .paypal-link {
   display: inline-flex;
   align-items: center;
+  gap: 9px;
   min-height: 38px;
   margin-top: 10px;
+  border: 1px solid #d6a400;
   border-radius: 6px;
   background: #ffc439;
   color: #16202a;
@@ -516,7 +518,30 @@ button:hover {
   font-weight: 700;
 }
 
+.paypal-mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 4px;
+  background: #003087;
+  color: #fff;
+  padding: 2px 7px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
 .paypal-link.is-disabled {
+  display: none;
+}
+
+.payment-url {
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.payment-url.is-disabled {
   display: none;
 }
 
@@ -707,5 +732,17 @@ button:hover {
     border: 0;
     border-radius: 0;
     padding: 0;
+  }
+
+  .paypal-link {
+    background: #fff;
+    border: 1px solid #16202a;
+    color: #16202a;
+  }
+
+  .paypal-mark {
+    background: #fff;
+    border: 1px solid #003087;
+    color: #003087;
   }
 }

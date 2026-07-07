@@ -149,9 +149,9 @@ function publicQuoteHtml(quote) {
       .specs{display:grid;grid-template-columns:1fr auto;gap:10px 16px;border:1px solid var(--line);border-radius:8px;padding:14px}.specs span{color:var(--muted)}.specs strong{text-align:right}
       table{width:100%;border-collapse:collapse;margin-top:24px}th,td{border-bottom:1px solid var(--line);padding:12px 10px;text-align:left;vertical-align:top}th:last-child,td:last-child{text-align:right;white-space:nowrap}
       .total-box{justify-self:end;width:min(100%,320px);display:grid;grid-template-columns:1fr auto;gap:10px 16px;background:#eef2ee;border:1px solid var(--line);border-radius:8px;padding:16px}.total-box span{color:var(--muted)}
-      .paypal{display:inline-flex;margin-top:10px;min-height:40px;align-items:center;border-radius:6px;background:#ffc439;color:#16202a;padding:9px 15px;text-decoration:none;font-weight:700}.legal{border-top:1px solid var(--line);padding-top:16px;font-size:13px}
+      .paypal{display:inline-flex;gap:9px;margin-top:10px;min-height:40px;align-items:center;border:1px solid #d6a400;border-radius:6px;background:#ffc439;color:#16202a;padding:9px 15px;text-decoration:none;font-weight:700}.paypal-mark{display:inline-flex;align-items:center;min-height:24px;border-radius:4px;background:#003087;color:#fff;padding:2px 7px;font-weight:800}.payment-url{margin-top:8px;color:var(--accent);font-size:13px;overflow-wrap:anywhere}.legal{border-top:1px solid var(--line);padding-top:16px;font-size:13px}
       @media(max-width:760px){main{padding:12px}.paper{padding:18px}.header,.parties,.totals,.battery{grid-template-columns:1fr}.meta{text-align:left}.total-box{justify-self:stretch}}
-      @media print{body{background:#fff}main{padding:0}.paper{border:0;border-radius:0}}
+      @media print{body{background:#fff}main{padding:0}.paper{border:0;border-radius:0}.paypal{background:#fff;border:1px solid #16202a;color:#16202a}.paypal-mark{background:#fff;border:1px solid #003087;color:#003087}}
     </style>
   </head>
   <body>
@@ -181,7 +181,7 @@ function publicQuoteHtml(quote) {
           <tbody><tr><td>Pack batterie sur mesure</td><td>${escapeHtml(`${state.series || ""}S${state.parallel || ""}P - ${results.cellCount || ""} cellules ${state.cellPreset || ""}`)}<br>${fixed(results.capacityAh)} Ah - ${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh</td><td>${money(q.salePrice)}</td></tr></tbody>
         </table>
         <section class="totals">
-          <div><h3>Paiement</h3><p>${escapeHtml(q.paymentTerms || "")}</p>${paypalUrl ? `<a class="paypal" href="${escapeHtml(paypalUrl)}" target="_blank" rel="noopener">Payer via PayPal</a>` : ""}</div>
+          <div><h3>Paiement</h3><p>${escapeHtml(q.paymentTerms || "")}</p>${paypalUrl ? `<a class="paypal" href="${escapeHtml(paypalUrl)}" target="_blank" rel="noopener"><span class="paypal-mark">PayPal</span><span>Payer en ligne</span></a><p class="payment-url">Lien de paiement : ${escapeHtml(paypalUrl)}</p>` : ""}</div>
           <div class="total-box"><span>Total devis</span><strong>${money(q.salePrice)}</strong><span>Acompte</span><strong>${money(q.depositAmount)} (${fixed(q.depositPercent)} %)</strong></div>
         </section>
         <section class="legal"><h3>Mentions</h3><p>${escapeHtml(q.legalTerms || "")}</p></section>

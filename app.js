@@ -77,6 +77,7 @@ const outputs = Object.fromEntries(
     "quoteBatteryDetails",
     "quoteSalePrice",
     "quotePaymentTerms",
+    "quotePaypalUrlText",
     "quoteTotal",
     "quoteDeposit",
     "quoteLegalTerms",
@@ -769,6 +770,8 @@ function renderQuote(state, data) {
   const paypalUrl = safePaymentUrl(state.paypalUrl);
   paypal.href = paypalUrl || "#";
   paypal.classList.toggle("is-disabled", !paypalUrl);
+  outputs.quotePaypalUrlText.textContent = paypalUrl ? `Lien de paiement : ${paypalUrl}` : "";
+  outputs.quotePaypalUrlText.classList.toggle("is-disabled", !paypalUrl);
 }
 
 function render() {
