@@ -32,7 +32,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -118,6 +119,12 @@ h2 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.form-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -131,7 +138,8 @@ label span {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 38px;
   border: 1px solid var(--line);
@@ -143,9 +151,15 @@ select {
 
 input:focus,
 select:focus,
+textarea:focus,
 button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 36%, white);
   outline-offset: 2px;
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.35;
 }
 
 .switch {
@@ -342,6 +356,162 @@ button:hover {
   color: #fff;
 }
 
+.quote-document {
+  margin-top: 16px;
+}
+
+.quote-paper {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #18211e;
+  padding: 28px;
+}
+
+.quote-header,
+.quote-parties,
+.quote-totals {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr;
+  gap: 24px;
+}
+
+.quote-header {
+  align-items: start;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 20px;
+}
+
+.quote-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.quote-brand img {
+  display: none;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.quote-brand img.has-logo {
+  display: block;
+}
+
+.quote-brand h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.quote-paper p {
+  color: var(--muted);
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.quote-meta {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  text-align: right;
+}
+
+.quote-meta strong {
+  font-size: 28px;
+}
+
+.quote-parties,
+.quote-totals,
+.quote-lines,
+.quote-legal {
+  margin-top: 24px;
+}
+
+.quote-parties h3,
+.quote-totals h3,
+.quote-legal h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quote-lines {
+  overflow-x: auto;
+}
+
+.quote-lines table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.quote-lines th,
+.quote-lines td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.quote-lines th:last-child,
+.quote-lines td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+#quoteBatteryDetails {
+  white-space: pre-line;
+}
+
+.quote-total-box {
+  justify-self: end;
+  width: min(100%, 300px);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.quote-total-box span {
+  color: var(--muted);
+}
+
+.quote-total-box strong {
+  text-align: right;
+}
+
+.paypal-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  margin-top: 10px;
+  border-radius: 6px;
+  background: #ffc439;
+  color: #16202a;
+  padding: 8px 14px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.paypal-link.is-disabled {
+  display: none;
+}
+
+.quote-legal {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  font-size: 13px;
+}
+
 .cell-outline {
   stroke: #2c3934;
   stroke-width: 0.9;
@@ -461,6 +631,25 @@ button:hover {
   .metric strong {
     font-size: 17px;
   }
+
+  .quote-paper {
+    padding: 16px;
+  }
+
+  .quote-header,
+  .quote-parties,
+  .quote-totals {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-meta {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .quote-total-box {
+    justify-self: stretch;
+  }
 }
 
 @media print {
@@ -488,5 +677,21 @@ button:hover {
   .metric {
     break-inside: avoid;
     margin-bottom: 12px;
+  }
+
+  body.quote-print .summary-strip,
+  body.quote-print .canvas-zone,
+  body.quote-print .details-zone {
+    display: none;
+  }
+
+  body.quote-print .quote-document {
+    display: block;
+  }
+
+  body.quote-print .quote-paper {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
   }
 }

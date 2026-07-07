@@ -25,6 +25,18 @@ const ids = [
   "hourlyRate",
   "laborHours",
   "markup",
+  "quoteNumber",
+  "quoteDate",
+  "quoteValidity",
+  "depositPercent",
+  "companyName",
+  "companyAddress",
+  "companyLegal",
+  "customerName",
+  "customerAddress",
+  "paypalUrl",
+  "paymentTerms",
+  "legalTerms",
 ];
 
 const el = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
@@ -53,6 +65,20 @@ const outputs = Object.fromEntries(
     "laborSubtotal",
     "totalCost",
     "salePrice",
+    "quoteCompanyName",
+    "quoteCompanyAddress",
+    "quoteCompanyLegal",
+    "quoteCustomerName",
+    "quoteCustomerAddress",
+    "quoteNumberOut",
+    "quoteDateOut",
+    "quoteValidUntilOut",
+    "quoteBatteryDetails",
+    "quoteSalePrice",
+    "quotePaymentTerms",
+    "quoteTotal",
+    "quoteDeposit",
+    "quoteLegalTerms",
   ].map((id) => [id, document.getElementById(id)]),
 );
 
@@ -66,6 +92,8 @@ const presets = {
   "18650": { diameter: 18.4, height: 65, ah: 3.2, dischargeA: 10 },
   "21700": { diameter: 21.2, height: 70, ah: 5, dischargeA: 15 },
 };
+
+let logoDataUrl = "";
 
 const initialState = readState();
 
@@ -85,6 +113,10 @@ function amps(value) {
 function power(value) {
   if (value >= 1000) return `${fixed(value / 1000, 1)} kW`;
   return `${Math.round(value).toLocaleString("fr-FR")} W`;
+}
+
+function text(input) {
+  return input.value.trim();
 }
 
 function fixed(value, digits = 1) {
@@ -122,6 +154,18 @@ function readState() {
     hourlyRate: Math.max(0, num(el.hourlyRate, 45)),
     laborHours: Math.max(0, num(el.laborHours, 3.5)),
     markup: Math.max(0, num(el.markup, 30)),
+    quoteNumber: text(el.quoteNumber),
+    quoteDate: el.quoteDate.value,
+    quoteValidity: Math.max(1, Math.round(num(el.quoteValidity, 30))),
+    depositPercent: Math.max(0, Math.min(100, num(el.depositPercent, 30))),
+    companyName: text(el.companyName),
+    companyAddress: text(el.companyAddress),
+    companyLegal: text(el.companyLegal),
+    customerName: text(el.customerName),
+    customerAddress: text(el.customerAddress),
+    paypalUrl: text(el.paypalUrl),
+    paymentTerms: text(el.paymentTerms),
+    legalTerms: text(el.legalTerms),
   };
 }
 
@@ -635,6 +679,85 @@ function drawWidth(state, data) {
   }
 }
 
+function parseDateInput(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return new Date();
+  return new Date(year, month - 1, day);
+}
+
+function formatDateFr(date) {
+  return new Intl.DateTimeFormat("fr-FR").format(date);
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function setText(node, value, fallback = "") {
+  node.textContent = value || fallback;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function safePaymentUrl(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    if (url.protocol === "http:" || url.protocol === "https:") return url.href;
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function renderQuote(state, data) {
+  const quoteDate = parseDateInput(state.quoteDate);
+  const validUntil = addDays(quoteDate, state.quoteValidity);
+  const deposit = data.salePrice * (state.depositPercent / 100);
+  const layoutLabel = state.cellLayout === "staggered" ? "quinconce serre" : "grille droite";
+  const bmsLabel = state.bmsEnabled ? `BMS ${state.bmsPosition}, ${state.bmsMount === "edge" ? "sur tranche" : "a plat"}, rotation ${state.bmsRotation} deg` : "sans BMS";
+  const details = [
+    `${state.series}S${state.parallel}P - ${data.cellCount} cellules ${state.cellPreset}`,
+    `${fixed(data.nominalVoltage)} V nominal / ${fixed(data.maxVoltage)} V pleine charge`,
+    `${fixed(data.capacityAh)} Ah - ${Math.round(data.energyWh).toLocaleString("fr-FR")} Wh`,
+    `Decharge max estimee : ${amps(data.maxDischargeA)} (${power(data.maxPowerW)})`,
+    `Dimensions enveloppe : ${fixed(data.packLength)} x ${fixed(data.packWidth)} x ${fixed(data.packHeight)} mm`,
+    `Arrangement : ${layoutLabel} - ${bmsLabel}`,
+  ].join("\n");
+
+  setText(outputs.quoteCompanyName, state.companyName, "Entreprise");
+  setText(outputs.quoteCompanyAddress, state.companyAddress, "Coordonnees entreprise");
+  setText(outputs.quoteCompanyLegal, state.companyLegal, "Infos legales entreprise");
+  setText(outputs.quoteCustomerName, state.customerName, "Client");
+  setText(outputs.quoteCustomerAddress, state.customerAddress, "Coordonnees client");
+  setText(outputs.quoteNumberOut, state.quoteNumber, "Devis");
+  outputs.quoteDateOut.textContent = formatDateFr(quoteDate);
+  outputs.quoteValidUntilOut.textContent = `Valable jusqu'au ${formatDateFr(validUntil)}`;
+  outputs.quoteBatteryDetails.textContent = details;
+  outputs.quoteSalePrice.textContent = money(data.salePrice);
+  setText(outputs.quotePaymentTerms, state.paymentTerms, "Conditions de paiement");
+  outputs.quoteTotal.textContent = money(data.salePrice);
+  outputs.quoteDeposit.textContent = `${money(deposit)} (${fixed(state.depositPercent)} %)`;
+  setText(outputs.quoteLegalTerms, state.legalTerms, "Mentions devis / legales");
+
+  const logo = document.getElementById("quoteLogo");
+  logo.src = logoDataUrl;
+  logo.classList.toggle("has-logo", Boolean(logoDataUrl));
+
+  const paypal = document.getElementById("quotePaypalLink");
+  const paypalUrl = safePaymentUrl(state.paypalUrl);
+  paypal.href = paypalUrl || "#";
+  paypal.classList.toggle("is-disabled", !paypalUrl);
+}
+
 function render() {
   const state = readState();
   const data = derive(state);
@@ -664,6 +787,7 @@ function render() {
   drawTop(state, data);
   drawSide(state, data);
   drawWidth(state, data);
+  renderQuote(state, data);
 }
 
 function applyPreset() {
@@ -713,6 +837,48 @@ function exportJson() {
   );
 }
 
+function quoteHtmlDocument() {
+  const state = readState();
+  const title = state.quoteNumber || "devis-batterielab";
+  const styles = Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .join("\n");
+  const quote = document.getElementById("quoteDocument").cloneNode(true);
+  return `<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(title)}</title>
+    <style>${styles}</style>
+  </head>
+  <body class="quote-print">
+    ${quote.outerHTML}
+  </body>
+</html>`;
+}
+
+function exportQuoteHtml() {
+  const state = readState();
+  const filename = `${(state.quoteNumber || "devis-batterielab").toLowerCase().replace(/[^a-z0-9-]+/g, "-")}.html`;
+  download(filename, quoteHtmlDocument(), "text/html");
+}
+
+function printQuote() {
+  document.body.classList.add("quote-print");
+  window.print();
+}
+
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("quote-print");
+});
+
 ids.forEach((id) => {
   el[id].addEventListener("input", render);
   el[id].addEventListener("change", render);
@@ -734,7 +900,24 @@ document.getElementById("resetButton").addEventListener("click", () => {
 
 document.getElementById("downloadSvg").addEventListener("click", exportSvg);
 document.getElementById("downloadJson").addEventListener("click", exportJson);
+document.getElementById("downloadQuoteHtml").addEventListener("click", exportQuoteHtml);
+document.getElementById("printQuote").addEventListener("click", printQuote);
 document.getElementById("printButton").addEventListener("click", () => window.print());
+document.getElementById("companyLogo").addEventListener("change", (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    logoDataUrl = String(reader.result || "");
+    render();
+  });
+  reader.readAsDataURL(file);
+});
+document.getElementById("removeLogo").addEventListener("click", () => {
+  logoDataUrl = "";
+  document.getElementById("companyLogo").value = "";
+  render();
+});
 window.addEventListener("resize", render);
 
 render();

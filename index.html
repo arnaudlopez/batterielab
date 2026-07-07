@@ -164,6 +164,76 @@
             </label>
           </div>
         </section>
+
+        <section class="panel">
+          <h2>Devis</h2>
+          <div class="grid two">
+            <label>
+              <span>N. devis</span>
+              <input id="quoteNumber" type="text" value="DEV-20260707-001" />
+            </label>
+            <label>
+              <span>Date</span>
+              <input id="quoteDate" type="date" value="2026-07-07" />
+            </label>
+            <label>
+              <span>Validite</span>
+              <input id="quoteValidity" type="number" min="1" max="180" step="1" value="30" />
+            </label>
+            <label>
+              <span>Acompte %</span>
+              <input id="depositPercent" type="number" min="0" max="100" step="1" value="30" />
+            </label>
+          </div>
+          <div class="form-stack">
+            <label>
+              <span>Logo entreprise</span>
+              <input id="companyLogo" type="file" accept="image/*" />
+            </label>
+            <button id="removeLogo" type="button">Retirer le logo</button>
+            <label>
+              <span>Entreprise</span>
+              <input id="companyName" type="text" value="BatterieLab" />
+            </label>
+            <label>
+              <span>Coordonnees entreprise</span>
+              <textarea id="companyAddress" rows="4">Adresse entreprise
+Email : contact@example.com
+Tel : 00 00 00 00 00</textarea>
+            </label>
+            <label>
+              <span>Infos legales entreprise</span>
+              <textarea id="companyLegal" rows="4">SIRET : a renseigner
+TVA intracommunautaire : a renseigner
+Assurance RC Pro : a renseigner</textarea>
+            </label>
+            <label>
+              <span>Client</span>
+              <input id="customerName" type="text" value="Nom du client" />
+            </label>
+            <label>
+              <span>Coordonnees client</span>
+              <textarea id="customerAddress" rows="4">Adresse client
+Email client
+Telephone client</textarea>
+            </label>
+            <label>
+              <span>Lien PayPal</span>
+              <input id="paypalUrl" type="url" placeholder="https://paypal.me/votrecompte/916" />
+            </label>
+            <label>
+              <span>Conditions de paiement</span>
+              <textarea id="paymentTerms" rows="3">Acompte a la commande, solde avant expedition ou remise en main propre.</textarea>
+            </label>
+            <label>
+              <span>Mentions devis / legales</span>
+              <textarea id="legalTerms" rows="6">Devis valable selon la duree indiquee, sous reserve de disponibilite des composants.
+Fabrication sur mesure selon configuration validee par le client.
+Produit a installer et utiliser conformement aux regles de securite applicables.
+Mentions legales a adapter selon le statut de l'entreprise.</textarea>
+            </label>
+          </div>
+        </section>
       </aside>
 
       <section class="workspace">
@@ -240,8 +310,80 @@
             <div class="button-row">
               <button id="downloadSvg" type="button">Exporter SVG</button>
               <button id="downloadJson" type="button">Exporter JSON</button>
+              <button id="printQuote" type="button">Imprimer devis</button>
+              <button id="downloadQuoteHtml" type="button">Exporter devis HTML</button>
               <button id="printButton" type="button">Imprimer</button>
             </div>
+          </div>
+        </section>
+
+        <section class="quote-document" id="quoteDocument" aria-label="Devis">
+          <div class="quote-paper">
+            <header class="quote-header">
+              <div class="quote-brand">
+                <img id="quoteLogo" alt="" />
+                <div>
+                  <h2 id="quoteCompanyName">BatterieLab</h2>
+                  <p id="quoteCompanyAddress">Coordonnees entreprise</p>
+                </div>
+              </div>
+              <div class="quote-meta">
+                <strong>Devis</strong>
+                <span id="quoteNumberOut">DEV-20260707-001</span>
+                <span id="quoteDateOut">07/07/2026</span>
+                <span id="quoteValidUntilOut">Valable jusqu'au 06/08/2026</span>
+              </div>
+            </header>
+
+            <section class="quote-parties">
+              <div>
+                <h3>Emetteur</h3>
+                <p id="quoteCompanyLegal">Infos legales entreprise</p>
+              </div>
+              <div>
+                <h3>Client</h3>
+                <strong id="quoteCustomerName">Nom du client</strong>
+                <p id="quoteCustomerAddress">Coordonnees client</p>
+              </div>
+            </section>
+
+            <section class="quote-lines">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Details</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Pack batterie sur mesure</td>
+                    <td id="quoteBatteryDetails">Configuration batterie</td>
+                    <td id="quoteSalePrice">0 EUR</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="quote-totals">
+              <div>
+                <h3>Paiement</h3>
+                <p id="quotePaymentTerms">Conditions de paiement</p>
+                <a id="quotePaypalLink" class="paypal-link" href="#" target="_blank" rel="noopener">Payer via PayPal</a>
+              </div>
+              <div class="quote-total-box">
+                <span>Total devis</span>
+                <strong id="quoteTotal">0 EUR</strong>
+                <span>Acompte</span>
+                <strong id="quoteDeposit">0 EUR</strong>
+              </div>
+            </section>
+
+            <section class="quote-legal">
+              <h3>Mentions</h3>
+              <p id="quoteLegalTerms">Mentions devis / legales</p>
+            </section>
           </div>
         </section>
       </section>

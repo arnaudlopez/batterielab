@@ -12,6 +12,7 @@ Configurateur web pour designer un pack batterie a cellules cylindriques.
 - Vues SVG live du pack en dessus, cote et largeur.
 - Controle d'encombrement par rapport au boitier.
 - Calculs de cellules, tension nominale, energie, cout, main d'oeuvre, marge et gain.
+- Generation d'un devis client avec coordonnees, logo, mentions, conditions et lien PayPal.
 - Export SVG, export JSON et impression.
 
 ## Utilisation
