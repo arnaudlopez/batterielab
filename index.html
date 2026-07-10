@@ -13,24 +13,29 @@
         <div class="brand-row">
           <div>
             <h1>BatterieLab</h1>
-            <p>Configurateur pack cellules</p>
+            <p>Conception de packs sur mesure</p>
           </div>
           <button class="icon-button" id="resetButton" type="button" title="Reinitialiser" aria-label="Reinitialiser">↺</button>
         </div>
 
-        <section class="panel">
+        <section class="display-mode">
           <div class="section-row">
-            <h2>Affichage</h2>
-            <label class="switch">
+            <div>
+              <strong>Vue client</strong>
+              <p class="helper-text">Masque toutes les donnees de prix.</p>
+            </div>
+            <label class="switch" aria-label="Activer la vue client">
               <input id="hidePrices" type="checkbox" />
               <span></span>
             </label>
           </div>
-          <p class="helper-text">Masquer les prix pour capture client.</p>
+          <button class="mobile-jump" id="jumpToDesign" type="button">Voir le pack ↓</button>
         </section>
 
-        <section class="panel">
-          <h2>Architecture</h2>
+        <div class="controls-sections">
+        <details class="panel collapsible core-panel" id="architecturePanel" open>
+          <summary><span>Architecture</span><span class="summary-hint">Series, paralleles et cellules</span></summary>
+          <div class="collapsible-content">
           <div class="grid two">
             <label>
               <span>Series</span>
@@ -53,6 +58,14 @@
               <input id="cellAh" type="number" min="0.5" max="8" step="0.1" value="5" />
             </label>
             <label>
+              <span>Tension nominale cellule</span>
+              <input id="cellNominalVoltage" type="number" min="1" max="5" step="0.05" value="3.6" />
+            </label>
+            <label>
+              <span>Tension pleine charge</span>
+              <input id="cellFullVoltage" type="number" min="1" max="5" step="0.05" value="4.2" />
+            </label>
+            <label>
               <span>Decharge max cellule</span>
               <input id="cellMaxDischarge" type="number" min="0" max="200" step="0.5" value="15" />
             </label>
@@ -69,7 +82,7 @@
             </label>
             <label>
               <span>Diametre mm</span>
-              <input id="cellDiameter" type="number" min="10" max="40" step="0.1" value="21" />
+              <input id="cellDiameter" type="number" min="10" max="40" step="0.1" value="21.2" />
             </label>
             <label>
               <span>Hauteur mm</span>
@@ -84,17 +97,20 @@
               <input id="casePadding" type="number" min="0" max="30" step="0.5" value="6" />
             </label>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
+        <details class="panel collapsible core-panel" id="bmsPanel" open>
+          <summary><span>BMS</span><span class="summary-hint">Position, pose et rotation</span></summary>
+          <div class="collapsible-content">
           <div class="section-row">
-            <h2>BMS</h2>
+            <strong class="inline-section-title">BMS actif</strong>
             <label class="switch">
               <input id="bmsEnabled" type="checkbox" checked />
               <span></span>
             </label>
           </div>
-          <div class="grid two">
+          <div class="grid two bms-controls">
             <label>
               <span>Position</span>
               <select id="bmsPosition">
@@ -133,11 +149,21 @@
               <span>Poids BMS g</span>
               <input id="bmsWeight" type="number" min="0" max="1000" step="1" value="120" />
             </label>
+            <label>
+              <span>Courant continu BMS A</span>
+              <input id="bmsMaxDischarge" type="number" min="0" max="1000" step="1" value="100" />
+            </label>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
-          <h2>Boitier</h2>
+        <details class="panel collapsible core-panel" id="casePanel" open>
+          <summary><span>Boitier</span><span class="summary-hint">Volume disponible et poids</span></summary>
+          <div class="collapsible-content">
+          <div class="section-row">
+            <strong class="inline-section-title">Dimensions utiles</strong>
+            <button class="small-button" id="fitCase" type="button">Ajuster au pack</button>
+          </div>
           <div class="grid three">
             <label>
               <span>Long. mm</span>
@@ -156,10 +182,12 @@
               <input id="enclosureWeight" type="number" min="0" max="10000" step="10" value="500" />
             </label>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel price-sensitive">
-          <h2>Couts</h2>
+        <details class="panel collapsible core-panel price-sensitive" id="costPanel" open>
+          <summary><span>Couts</span><span class="summary-hint">Revient, main d'oeuvre et majoration</span></summary>
+          <div class="collapsible-content">
           <div class="grid two">
             <label>
               <span>Prix cellule EUR</span>
@@ -182,14 +210,16 @@
               <input id="laborHours" type="number" min="0" max="100" step="0.25" value="3.5" />
             </label>
             <label>
-              <span>Marge %</span>
+              <span>Majoration sur cout %</span>
               <input id="markup" type="number" min="0" max="300" step="1" value="30" />
             </label>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
-          <h2>Devis</h2>
+        <details class="panel collapsible" id="quoteSettings">
+          <summary><span>Devis et client</span><span class="summary-hint">Coordonnees, paiement, mentions</span></summary>
+          <div class="collapsible-content">
           <div class="grid two">
             <label>
               <span>N. devis</span>
@@ -264,10 +294,12 @@ Produit a installer et utiliser conformement aux regles de securite applicables.
 Mentions legales a adapter selon le statut de l'entreprise.</textarea>
             </label>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
-          <h2>Sauvegardes</h2>
+        <details class="panel collapsible" id="saveSettings">
+          <summary><span>Sauvegardes</span><span class="summary-hint">Navigateur et base JSON</span></summary>
+          <div class="collapsible-content">
           <div class="form-stack">
             <label>
               <span>Nom de sauvegarde</span>
@@ -292,10 +324,24 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
             <input id="importSaveDb" class="hidden-file" type="file" accept="application/json,.json" />
             <p class="helper-text" id="saveStatus">Sauvegardes locales dans ce navigateur. Export JSON recommande pour archive ou transfert.</p>
           </div>
-        </section>
+          </div>
+        </details>
+        </div>
       </aside>
 
       <section class="workspace">
+        <header class="workspace-nav">
+          <div class="view-tabs" role="tablist" aria-label="Espace de travail">
+            <button id="designTab" type="button" role="tab" aria-selected="true" aria-controls="designWorkspace">Conception</button>
+            <button id="quoteTab" type="button" role="tab" aria-selected="false" aria-controls="quoteDocument">Apercu devis</button>
+          </div>
+          <div class="workspace-context">
+            <strong id="workspaceTitle">Pack 13S8P</strong>
+            <span id="workspaceFit">Compatible avec le boitier</span>
+          </div>
+        </header>
+
+        <div id="designWorkspace" role="tabpanel" aria-labelledby="designTab">
         <header class="summary-strip" aria-label="Synthese">
           <div class="metric"><span>Architecture</span><strong id="metricArchitecture">13S8P</strong></div>
           <div class="metric"><span>Cellules</span><strong id="metricCells">104</strong></div>
@@ -306,6 +352,21 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
           <div class="metric price-sensitive"><span>Cout total</span><strong id="metricCost">704 EUR</strong></div>
           <div class="metric price-sensitive"><span>Gain</span><strong id="metricGain">211 EUR</strong></div>
         </header>
+
+        <section class="visual-toolbar" aria-label="Calques de visualisation">
+          <div class="layer-controls">
+            <strong>Calques</strong>
+            <label><input id="showCase" type="checkbox" checked /> Boitier</label>
+            <label><input id="showNickel" type="checkbox" checked /> Nickel</label>
+            <label><input id="showBalanceWires" type="checkbox" checked /> Faisceau BMS</label>
+            <label><input id="showSeriesLabels" type="checkbox" checked /> Groupes S</label>
+          </div>
+          <div class="drawing-legend" aria-label="Legende">
+            <span><i class="legend-swatch case-swatch"></i>Boitier disponible</span>
+            <span><i class="legend-swatch pack-swatch"></i>Enveloppe requise</span>
+            <span><i class="legend-swatch bms-swatch"></i>BMS</span>
+          </div>
+        </section>
 
         <section class="canvas-zone">
           <div class="view-card view-card-large">
@@ -341,16 +402,23 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
               <span>Enveloppe requise</span><strong id="packDims">0 x 0 x 0 mm</strong>
               <span>Boitier</span><strong id="caseDims">0 x 0 x 0 mm</strong>
               <span>Poids total</span><strong id="packWeight">0 kg</strong>
-              <span>Jeu restant</span><strong id="clearance">0 / 0 / 0 mm</strong>
               <span>Etat</span><strong id="fitStatus" class="status-pill">OK</strong>
             </div>
+            <div class="clearance-grid" aria-label="Jeu restant par axe">
+              <div><span>Longueur</span><strong id="clearanceLength">0 mm</strong></div>
+              <div><span>Largeur</span><strong id="clearanceWidth">0 mm</strong></div>
+              <div><span>Hauteur</span><strong id="clearanceHeight">0 mm</strong></div>
+            </div>
+            <p class="fit-message" id="fitMessage"></p>
           </div>
 
           <div class="panel output-panel">
             <h2>Electrique</h2>
             <div class="spec-grid">
               <span>Courant cellule max</span><strong id="cellMaxDischargeOut">0 A</strong>
+              <span>Potentiel cellules</span><strong id="cellArrayMaxDischarge">0 A</strong>
               <span>Courant pack max</span><strong id="packMaxDischarge">0 A</strong>
+              <span>Facteur limitant</span><strong id="dischargeLimit">Cellules</strong>
               <span>Puissance nominale max</span><strong id="packMaxPower">0 W</strong>
               <span>Tension pleine charge</span><strong id="maxVoltage">0 V</strong>
             </div>
@@ -362,27 +430,36 @@ Mentions legales a adapter selon le statut de l'entreprise.</textarea>
               <span>Cellules</span><strong id="cellsSubtotal">0 EUR</strong>
               <span>Main d'oeuvre</span><strong id="laborSubtotal">0 EUR</strong>
               <span>Total revient</span><strong id="totalCost">0 EUR</strong>
-              <span>Prix conseille</span><strong id="salePrice">0 EUR</strong>
+              <span>Prix de vente conseille</span><strong id="salePrice">0 EUR</strong>
             </div>
           </div>
 
           <div class="panel output-panel">
             <h2>Actions</h2>
-            <div class="button-row">
-              <button id="downloadSvg" type="button">Exporter SVG</button>
-              <button id="downloadJson" type="button">Exporter JSON</button>
-              <button id="printQuote" type="button">Imprimer devis</button>
-              <button id="downloadQuotePdf" type="button">Exporter devis PDF</button>
-              <button id="downloadQuoteHtml" type="button">Exporter devis HTML</button>
-              <button id="createPublicQuote" type="button">Creer lien public + email</button>
-              <button id="printButton" type="button">Imprimer</button>
+            <div class="action-block">
+              <span>Devis client</span>
+              <div class="button-row">
+                <button class="primary-action" id="downloadQuotePdf" type="button">Exporter PDF</button>
+                <button id="createPublicQuote" type="button">Lien public + email</button>
+                <button id="printQuote" type="button">Imprimer le devis</button>
+              </div>
+            </div>
+            <div class="action-block">
+              <span>Fichiers techniques</span>
+              <div class="button-row compact-actions">
+                <button id="downloadSvg" type="button">SVG</button>
+                <button id="downloadJson" type="button">JSON</button>
+                <button id="downloadQuoteHtml" type="button">HTML</button>
+                <button id="printButton" type="button">Imprimer la fiche</button>
+              </div>
             </div>
             <p class="helper-text" id="publicQuoteStatus">Le lien public necessite le mode serveur.</p>
             <a class="public-quote-link" id="publicQuoteLink" href="#" target="_blank" rel="noopener"></a>
           </div>
         </section>
+        </div>
 
-        <section class="quote-document" id="quoteDocument" aria-label="Devis">
+        <section class="quote-document" id="quoteDocument" role="tabpanel" aria-labelledby="quoteTab" aria-label="Devis" hidden>
           <div class="quote-paper">
             <header class="quote-header">
               <div class="quote-brand">

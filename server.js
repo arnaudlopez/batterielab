@@ -222,6 +222,7 @@ function publicQuoteHtml(quote, options = {}) {
             <span>Energie</span><strong>${Math.round(results.energyWh || 0).toLocaleString("fr-FR")} Wh</strong>
             ${weightSpec}
             <span>Decharge max</span><strong>${fixed(results.maxDischargeA)} A</strong>
+            <span>Facteur limitant</span><strong>${escapeHtml(results.dischargeLimit || "Cellules")}</strong>
             <span>Enveloppe</span><strong>${fixed(results.packLength)} x ${fixed(results.packWidth)} x ${fixed(results.packHeight)} mm</strong>
           </div>
         </section>

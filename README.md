@@ -7,15 +7,18 @@ Configurateur web pour designer un pack batterie a cellules cylindriques.
 - Architecture configurable en series/paralleles, par exemple `13S8P`.
 - Presets cellules `18650`, `21700` ou dimensions custom.
 - Arrangement des cellules en grille droite ou en quinconce serre.
-- Calcul du courant de decharge max pack depuis le courant max par cellule.
+- Tensions nominale et pleine charge configurables par cellule.
+- Calcul du courant de decharge max pack avec limitation par le courant continu du BMS.
 - Estimation du poids total depuis le poids des cellules, du BMS et du boitier/accessoires.
 - BMS activable, positionnable et orientable a plat ou sur tranche.
-- Vues SVG live du pack en dessus, cote et largeur.
-- Controle d'encombrement par rapport au boitier.
+- Vues SVG live du pack en dessus, cote et largeur, avec cotes et calques configurables.
+- Representation coherente des groupes paralleles, des ponts serie, du nickel, du faisceau d'equilibrage et des sorties P+/P-.
+- Controle d'encombrement par axe et ajustement automatique du boitier.
 - Calculs de cellules, tension nominale, energie, cout, main d'oeuvre, marge et gain.
 - Generation d'un devis client avec coordonnees, logo, frais d'envoi, mentions, conditions et lien PayPal.
 - Sauvegardes locales nommees, avec export/import JSON de la base de sauvegardes.
-- Export SVG, export JSON et impression.
+- Espace de travail separe entre conception et apercu du devis.
+- Export SVG, export JSON, PDF de devis et impression.
 
 ## Utilisation
 

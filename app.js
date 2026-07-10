@@ -1,9 +1,15 @@
 const ids = [
   "hidePrices",
+  "showCase",
+  "showNickel",
+  "showBalanceWires",
+  "showSeriesLabels",
   "series",
   "parallel",
   "cellPreset",
   "cellAh",
+  "cellNominalVoltage",
+  "cellFullVoltage",
   "cellMaxDischarge",
   "cellWeight",
   "cellLayout",
@@ -19,6 +25,7 @@ const ids = [
   "bmsLength",
   "bmsWidth",
   "bmsWeight",
+  "bmsMaxDischarge",
   "caseLength",
   "caseWidth",
   "caseHeight",
@@ -63,10 +70,15 @@ const outputs = Object.fromEntries(
     "packDims",
     "caseDims",
     "packWeight",
-    "clearance",
+    "clearanceLength",
+    "clearanceWidth",
+    "clearanceHeight",
+    "fitMessage",
     "fitStatus",
     "cellMaxDischargeOut",
+    "cellArrayMaxDischarge",
     "packMaxDischarge",
+    "dischargeLimit",
     "packMaxPower",
     "maxVoltage",
     "cellsSubtotal",
@@ -104,14 +116,23 @@ const publicQuoteUi = {
   link: document.getElementById("publicQuoteLink"),
 };
 
+const workspaceUi = {
+  design: document.getElementById("designWorkspace"),
+  quote: document.getElementById("quoteDocument"),
+  designTab: document.getElementById("designTab"),
+  quoteTab: document.getElementById("quoteTab"),
+  title: document.getElementById("workspaceTitle"),
+  fit: document.getElementById("workspaceFit"),
+};
+
 const presets = {
   "18650": { diameter: 18.4, height: 65, ah: 3.2, dischargeA: 10, weightG: 45 },
   "21700": { diameter: 21.2, height: 70, ah: 5, dischargeA: 15, weightG: 70 },
 };
 
 let logoDataUrl = "";
-
-const initialState = readState();
+let initialState = null;
+let activeWorkspaceView = "design";
 const saveStorageKey = "batterielab:saves:v1";
 const saveUi = {
   name: document.getElementById("saveName"),
@@ -153,12 +174,20 @@ function fixed(value, digits = 1) {
 }
 
 function readState() {
+  const cellNominalVoltage = Math.max(0.1, num(el.cellNominalVoltage, 3.6));
+  const cellFullVoltage = Math.max(cellNominalVoltage, num(el.cellFullVoltage, 4.2));
   return {
     hidePrices: el.hidePrices.checked,
+    showCase: el.showCase.checked,
+    showNickel: el.showNickel.checked,
+    showBalanceWires: el.showBalanceWires.checked,
+    showSeriesLabels: el.showSeriesLabels.checked,
     series: Math.max(1, Math.round(num(el.series, 13))),
     parallel: Math.max(1, Math.round(num(el.parallel, 8))),
     cellPreset: el.cellPreset.value,
     cellAh: Math.max(0.1, num(el.cellAh, 5)),
+    cellNominalVoltage,
+    cellFullVoltage,
     cellMaxDischarge: Math.max(0, num(el.cellMaxDischarge, 15)),
     cellWeight: Math.max(0, num(el.cellWeight, 70)),
     cellLayout: el.cellLayout.value,
@@ -174,6 +203,7 @@ function readState() {
     bmsLength: Math.max(1, num(el.bmsLength, 120)),
     bmsWidth: Math.max(1, num(el.bmsWidth, 55)),
     bmsWeight: Math.max(0, num(el.bmsWeight, 120)),
+    bmsMaxDischarge: Math.max(0, num(el.bmsMaxDischarge, 100)),
     caseLength: Math.max(1, num(el.caseLength, 330)),
     caseWidth: Math.max(1, num(el.caseWidth, 270)),
     caseHeight: Math.max(1, num(el.caseHeight, 95)),
@@ -249,11 +279,13 @@ function derive(state) {
   }
 
   const cellCount = state.series * state.parallel;
-  const nominalVoltage = state.series * 3.6;
-  const maxVoltage = state.series * 4.2;
+  const nominalVoltage = state.series * state.cellNominalVoltage;
+  const maxVoltage = state.series * state.cellFullVoltage;
   const capacityAh = state.parallel * state.cellAh;
   const energyWh = nominalVoltage * capacityAh;
-  const maxDischargeA = state.parallel * state.cellMaxDischarge;
+  const cellArrayMaxDischargeA = state.parallel * state.cellMaxDischarge;
+  const maxDischargeA = state.bmsEnabled ? Math.min(cellArrayMaxDischargeA, state.bmsMaxDischarge) : cellArrayMaxDischargeA;
+  const dischargeLimit = state.bmsEnabled && state.bmsMaxDischarge < cellArrayMaxDischargeA ? "BMS" : "Cellules";
   const maxPowerW = nominalVoltage * maxDischargeA;
   const cellsWeightG = cellCount * state.cellWeight;
   const bmsWeightG = state.bmsEnabled ? state.bmsWeight : 0;
@@ -282,7 +314,9 @@ function derive(state) {
     maxVoltage,
     capacityAh,
     energyWh,
+    cellArrayMaxDischargeA,
     maxDischargeA,
+    dischargeLimit,
     maxPowerW,
     cellsWeightG,
     bmsWeightG,
@@ -337,27 +371,53 @@ function makeScaler(svg, modelWidth, modelHeight, margin = 28) {
   };
 }
 
-function drawEnvelopeLabels(svg, s, caseRect, packRect) {
+function drawEnvelopeLabels(svg, s, caseRect, packRect, showCase) {
+  if (showCase) {
+    svg.append(
+      svgEl("text", {
+        x: s.x(caseRect.x + 2),
+        y: s.y(caseRect.y) - 8,
+        class: "small-svg",
+      }, "Boitier disponible"),
+    );
+  }
   svg.append(
     svgEl("text", {
-      x: s.x(caseRect.x + 5),
-      y: s.y(caseRect.y + 8),
-      class: "small-svg",
-    }, "Boitier dispo"),
-  );
-  svg.append(
-    svgEl("text", {
-      x: s.x(packRect.x + 5),
+      x: s.x(packRect.x + packRect.w - 5),
       y: s.y(packRect.y + packRect.h - 7),
       class: "small-svg",
+      "text-anchor": "end",
     }, "Enveloppe requise"),
+  );
+}
+
+function drawDimensions(svg, s, rect, horizontalLabel, verticalLabel) {
+  const offset = 17 / s.scale;
+  const tick = 4 / s.scale;
+  const bottomY = rect.y + rect.h + offset;
+  const leftX = rect.x - offset;
+
+  svg.append(
+    svgEl("line", { x1: s.x(rect.x), y1: s.y(bottomY), x2: s.x(rect.x + rect.w), y2: s.y(bottomY), class: "dimension-line" }),
+    svgEl("line", { x1: s.x(rect.x), y1: s.y(bottomY - tick), x2: s.x(rect.x), y2: s.y(bottomY + tick), class: "dimension-line" }),
+    svgEl("line", { x1: s.x(rect.x + rect.w), y1: s.y(bottomY - tick), x2: s.x(rect.x + rect.w), y2: s.y(bottomY + tick), class: "dimension-line" }),
+    svgEl("text", { x: s.x(rect.x + rect.w / 2), y: s.y(bottomY - tick), class: "dimension-label" }, horizontalLabel),
+    svgEl("line", { x1: s.x(leftX), y1: s.y(rect.y), x2: s.x(leftX), y2: s.y(rect.y + rect.h), class: "dimension-line" }),
+    svgEl("line", { x1: s.x(leftX - tick), y1: s.y(rect.y), x2: s.x(leftX + tick), y2: s.y(rect.y), class: "dimension-line" }),
+    svgEl("line", { x1: s.x(leftX - tick), y1: s.y(rect.y + rect.h), x2: s.x(leftX + tick), y2: s.y(rect.y + rect.h), class: "dimension-line" }),
+    svgEl("text", {
+      x: s.x(leftX + tick),
+      y: s.y(rect.y + rect.h / 2),
+      class: "dimension-label",
+      transform: `rotate(-90 ${s.x(leftX + tick)} ${s.y(rect.y + rect.h / 2)})`,
+    }, verticalLabel),
   );
 }
 
 function drawTop(state, data) {
   const modelWidth = Math.max(state.caseLength, data.packLength);
   const modelHeight = Math.max(state.caseWidth, data.packWidth);
-  const s = makeScaler(svgs.top, modelWidth, modelHeight, 34);
+  const s = makeScaler(svgs.top, modelWidth, modelHeight, 50);
   outputs.topScale.textContent = `1 px = ${fixed(1 / s.scale, 1)} mm`;
 
   const caseRect = {
@@ -373,16 +433,18 @@ function drawTop(state, data) {
     h: data.packWidth,
   };
 
-  svgs.top.append(
-    svgEl("rect", {
-      x: s.x(caseRect.x),
-      y: s.y(caseRect.y),
-      width: s.d(caseRect.w),
-      height: s.d(caseRect.h),
-      rx: 4,
-      class: "case-outline",
-    }),
-  );
+  if (state.showCase) {
+    svgs.top.append(
+      svgEl("rect", {
+        x: s.x(caseRect.x),
+        y: s.y(caseRect.y),
+        width: s.d(caseRect.w),
+        height: s.d(caseRect.h),
+        rx: 4,
+        class: "case-outline",
+      }),
+    );
+  }
 
   const originX = packRect.x + state.casePadding;
   const originY = packRect.y + state.casePadding;
@@ -396,7 +458,8 @@ function drawTop(state, data) {
       class: "pack-shadow",
     }),
   );
-  drawEnvelopeLabels(svgs.top, s, caseRect, packRect);
+  drawEnvelopeLabels(svgs.top, s, caseRect, packRect, state.showCase);
+  drawDimensions(svgs.top, s, packRect, `${fixed(data.packLength)} mm`, `${fixed(data.packWidth)} mm`);
 
   drawNickelAndCells(svgs.top, s, state, data, originX, originY, true);
   drawBmsTop(svgs.top, s, state, data, modelWidth, modelHeight, originX, originY);
@@ -413,38 +476,40 @@ function cellCenter(state, data, originX, originY, col, row) {
 
 function drawNickelAndCells(svg, s, state, data, originX, originY, withLabels) {
   const radius = state.cellDiameter / 2;
-  for (let col = 0; col < state.series; col += 1) {
-    const points = [];
-    for (let row = 0; row < state.parallel; row += 1) {
-      points.push(cellCenter(state, data, originX, originY, col, row));
+  if (state.showNickel) {
+    for (let col = 0; col < state.series; col += 1) {
+      const points = [];
+      for (let row = 0; row < state.parallel; row += 1) {
+        points.push(cellCenter(state, data, originX, originY, col, row));
+      }
+      svg.append(
+        svgEl("polyline", {
+          points: points.map((point) => `${s.x(point.x)},${s.y(point.y)}`).join(" "),
+          class: "nickel",
+        }),
+      );
     }
-    svg.append(
-      svgEl("polyline", {
-        points: points.map((point) => `${s.x(point.x)},${s.y(point.y)}`).join(" "),
-        class: "nickel",
-      }),
-    );
-  }
 
-  for (let col = 0; col < state.series - 1; col += 1) {
-    const row = col % 2 === 0 ? state.parallel - 1 : 0;
-    const start = cellCenter(state, data, originX, originY, col, row);
-    const end = cellCenter(state, data, originX, originY, col + 1, row);
-    svg.append(
-      svgEl("line", {
-        x1: s.x(start.x),
-        y1: s.y(start.y),
-        x2: s.x(end.x),
-        y2: s.y(end.y),
-        class: "nickel",
-      }),
-    );
+    for (let col = 0; col < state.series - 1; col += 1) {
+      const row = col % 2 === 0 ? state.parallel - 1 : 0;
+      const start = cellCenter(state, data, originX, originY, col, row);
+      const end = cellCenter(state, data, originX, originY, col + 1, row);
+      svg.append(
+        svgEl("line", {
+          x1: s.x(start.x),
+          y1: s.y(start.y),
+          x2: s.x(end.x),
+          y2: s.y(end.y),
+          class: "nickel",
+        }),
+      );
+    }
   }
 
   for (let col = 0; col < state.series; col += 1) {
     for (let row = 0; row < state.parallel; row += 1) {
       const { x, y } = cellCenter(state, data, originX, originY, col, row);
-      const positive = (col + row) % 2 === 0;
+      const positive = col % 2 === 0;
       svg.append(
         svgEl("circle", {
           cx: s.x(x),
@@ -470,7 +535,7 @@ function drawNickelAndCells(svg, s, state, data, originX, originY, withLabels) {
         ),
       );
     }
-    if (withLabels) {
+    if (withLabels && state.showSeriesLabels) {
       const labelPoint = cellCenter(state, data, originX, originY, col, 0);
       svg.append(
         svgEl(
@@ -545,12 +610,14 @@ function drawBmsTop(svg, s, state, data, modelWidth, modelHeight, originX, origi
     }),
   );
 
-  for (let i = 0; i < 4; i += 1) {
+  const chipCount = Math.max(2, Math.min(5, Math.floor(rect.w / 22)));
+  for (let i = 0; i < chipCount; i += 1) {
+    const chipWidth = Math.min(11, rect.w / (chipCount * 1.8));
     svg.append(
       svgEl("rect", {
-        x: s.x(rect.x + 10 + i * 20),
+        x: s.x(rect.x + ((i + 1) * rect.w) / (chipCount + 1) - chipWidth / 2),
         y: s.y(rect.y + rect.h * 0.28),
-        width: s.d(Math.min(10, rect.w / 9)),
+        width: s.d(chipWidth),
         height: s.d(Math.max(5, rect.h * 0.28)),
         rx: 1,
         class: "bms-chip",
@@ -559,29 +626,34 @@ function drawBmsTop(svg, s, state, data, modelWidth, modelHeight, originX, origi
   }
 
   drawBmsLabel(svg, s, rect, data.bms.label);
+  if (!state.showBalanceWires) return;
 
-  const connectorX = rect.x + rect.w * 0.12;
-  const connectorY = rect.y + rect.h * 0.5;
   for (let col = 0; col <= state.series; col += 1) {
     const cellCol = Math.min(Math.max(col - 1, 0), state.series - 1);
-    const row = col % 2 === 0 ? 0 : state.parallel - 1;
+    const row = col === 0 ? 0 : (cellCol % 2 === 0 ? state.parallel - 1 : 0);
     const point = cellCenter(state, data, originX, originY, cellCol, row);
     const x = point.x;
     const y = point.y + (row === 0 ? -state.cellDiameter * 0.32 : state.cellDiameter * 0.32);
+    const position = (col + 1) / (state.series + 2);
+    let connector = { x: rect.x + rect.w * position, y: rect.y + rect.h };
+    if (state.bmsPosition === "side") connector = { x: rect.x + rect.w * position, y: rect.y };
+    if (state.bmsPosition === "end") connector = { x: rect.x, y: rect.y + rect.h * position };
     const hue = Math.round((col / Math.max(1, state.series)) * 260);
     svg.append(
       svgEl("path", {
-        d: `M ${s.x(x)} ${s.y(y)} C ${s.x(x)} ${s.y((y + connectorY) / 2)} ${s.x(connectorX)} ${s.y((y + connectorY) / 2)} ${s.x(connectorX)} ${s.y(connectorY)}`,
+        d: `M ${s.x(x)} ${s.y(y)} C ${s.x(x)} ${s.y((y + connector.y) / 2)} ${s.x(connector.x)} ${s.y((y + connector.y) / 2)} ${s.x(connector.x)} ${s.y(connector.y)}`,
         class: "wire-balance",
         stroke: `hsl(${hue} 70% 44%)`,
       }),
+      svgEl("circle", { cx: s.x(connector.x), cy: s.y(connector.y), r: 1.7, fill: `hsl(${hue} 70% 44%)` }),
     );
   }
 }
 
 function drawMainLeads(svg, s, state, data, modelWidth, modelHeight, originX, originY) {
   const negative = cellCenter(state, data, originX, originY, 0, 0);
-  const positive = cellCenter(state, data, originX, originY, state.series - 1, state.parallel - 1);
+  const positiveRow = (state.series - 1) % 2 === 0 ? state.parallel - 1 : 0;
+  const positive = cellCenter(state, data, originX, originY, state.series - 1, positiveRow);
   const exitX = (modelWidth + state.caseLength) / 2 - state.casePadding;
   const exitY = (modelHeight - state.caseWidth) / 2 + state.casePadding;
 
@@ -601,12 +673,16 @@ function drawMainLeads(svg, s, state, data, modelWidth, modelHeight, originX, or
   );
   svg.append(svgEl("circle", { cx: s.x(exitX), cy: s.y(exitY + 18), r: 4, fill: "var(--wire-red)" }));
   svg.append(svgEl("circle", { cx: s.x(exitX), cy: s.y(exitY + 34), r: 4, fill: "var(--wire-black)" }));
+  svg.append(
+    svgEl("text", { x: s.x(exitX - 7), y: s.y(exitY + 20), class: "lead-label", "text-anchor": "end" }, "P+"),
+    svgEl("text", { x: s.x(exitX - 7), y: s.y(exitY + 36), class: "lead-label", "text-anchor": "end" }, "P-"),
+  );
 }
 
 function drawSide(state, data) {
   const modelWidth = Math.max(state.caseLength, data.packLength);
   const modelHeight = Math.max(state.caseHeight, data.packHeight);
-  const s = makeScaler(svgs.side, modelWidth, modelHeight, 28);
+  const s = makeScaler(svgs.side, modelWidth, modelHeight, 42);
   outputs.sideDimensions.textContent = `${fixed(data.packLength)} x ${fixed(data.packHeight)} mm`;
   const bms = data.bms;
 
@@ -616,7 +692,9 @@ function drawSide(state, data) {
     w: state.caseLength,
     h: state.caseHeight,
   };
-  svgs.side.append(svgEl("rect", { x: s.x(caseRect.x), y: s.y(caseRect.y), width: s.d(caseRect.w), height: s.d(caseRect.h), rx: 3, class: "case-outline" }));
+  if (state.showCase) {
+    svgs.side.append(svgEl("rect", { x: s.x(caseRect.x), y: s.y(caseRect.y), width: s.d(caseRect.w), height: s.d(caseRect.h), rx: 3, class: "case-outline" }));
+  }
 
   const packRect = {
     x: (modelWidth - data.packLength) / 2,
@@ -627,7 +705,8 @@ function drawSide(state, data) {
   const packX = packRect.x;
   const packY = packRect.y;
   svgs.side.append(svgEl("rect", { x: s.x(packRect.x), y: s.y(packRect.y), width: s.d(packRect.w), height: s.d(packRect.h), rx: 3, class: "pack-shadow" }));
-  drawEnvelopeLabels(svgs.side, s, caseRect, packRect);
+  drawEnvelopeLabels(svgs.side, s, caseRect, packRect, state.showCase);
+  drawDimensions(svgs.side, s, packRect, `${fixed(data.packLength)} mm`, `${fixed(data.packHeight)} mm`);
 
   const cellY = packY + state.casePadding + (state.bmsEnabled && state.bmsPosition === "top" ? bms.height + state.spacing : 0);
   const sideRows = data.staggered && state.parallel > 1 ? [1, 0] : [0];
@@ -659,7 +738,7 @@ function drawSide(state, data) {
 function drawWidth(state, data) {
   const modelWidth = Math.max(state.caseWidth, data.packWidth);
   const modelHeight = Math.max(state.caseHeight, data.packHeight);
-  const s = makeScaler(svgs.width, modelWidth, modelHeight, 28);
+  const s = makeScaler(svgs.width, modelWidth, modelHeight, 42);
   outputs.widthDimensions.textContent = `${fixed(data.packWidth)} x ${fixed(data.packHeight)} mm`;
   const bms = data.bms;
 
@@ -669,7 +748,9 @@ function drawWidth(state, data) {
     w: state.caseWidth,
     h: state.caseHeight,
   };
-  svgs.width.append(svgEl("rect", { x: s.x(caseRect.x), y: s.y(caseRect.y), width: s.d(caseRect.w), height: s.d(caseRect.h), rx: 3, class: "case-outline" }));
+  if (state.showCase) {
+    svgs.width.append(svgEl("rect", { x: s.x(caseRect.x), y: s.y(caseRect.y), width: s.d(caseRect.w), height: s.d(caseRect.h), rx: 3, class: "case-outline" }));
+  }
 
   const packRect = {
     x: (modelWidth - data.packWidth) / 2,
@@ -680,7 +761,8 @@ function drawWidth(state, data) {
   const packX = packRect.x;
   const packY = packRect.y;
   svgs.width.append(svgEl("rect", { x: s.x(packRect.x), y: s.y(packRect.y), width: s.d(packRect.w), height: s.d(packRect.h), rx: 3, class: "pack-shadow" }));
-  drawEnvelopeLabels(svgs.width, s, caseRect, packRect);
+  drawEnvelopeLabels(svgs.width, s, caseRect, packRect, state.showCase);
+  drawDimensions(svgs.width, s, packRect, `${fixed(data.packWidth)} mm`, `${fixed(data.packHeight)} mm`);
 
   const cellY = packY + state.casePadding + (state.bmsEnabled && state.bmsPosition === "top" ? bms.height + state.spacing : 0);
   for (let row = 0; row < state.parallel; row += 1) {
@@ -765,7 +847,10 @@ function renderQuote(state, data) {
   const validUntil = addDays(quoteDate, state.quoteValidity);
   const deposit = data.quoteTotal * (state.depositPercent / 100);
   const layoutLabel = state.cellLayout === "staggered" ? "quinconce serre" : "grille droite";
-  const bmsLabel = state.bmsEnabled ? `BMS ${state.bmsPosition}, ${state.bmsMount === "edge" ? "sur tranche" : "a plat"}, rotation ${state.bmsRotation} deg` : "sans BMS";
+  const bmsPositions = { side: "sur le cote", top: "au-dessus", end: "en bout" };
+  const bmsLabel = state.bmsEnabled
+    ? `BMS ${bmsPositions[state.bmsPosition]}, ${state.bmsMount === "edge" ? "sur tranche" : "a plat"}, rotation ${state.bmsRotation} deg, ${amps(state.bmsMaxDischarge)} continu`
+    : "sans BMS";
   const details = [
     `${state.series}S${state.parallel}P - ${data.cellCount} cellules ${state.cellPreset}`,
     `${fixed(data.nominalVoltage)} V nominal / ${fixed(data.maxVoltage)} V pleine charge`,
@@ -805,10 +890,42 @@ function renderQuote(state, data) {
   outputs.quotePaypalUrlText.classList.toggle("is-disabled", !paypalUrl);
 }
 
+function setControlAvailability(state) {
+  ["bmsPosition", "bmsMount", "bmsRotation", "bmsThickness", "bmsLength", "bmsWidth", "bmsWeight", "bmsMaxDischarge"].forEach((id) => {
+    el[id].disabled = !state.bmsEnabled;
+  });
+  document.getElementById("bmsPanel").classList.toggle("bms-disabled", !state.bmsEnabled);
+
+  const customCell = state.cellPreset === "custom";
+  el.cellDiameter.disabled = !customCell;
+  el.cellHeight.disabled = !customCell;
+}
+
+function fitDiagnostic(data) {
+  const axes = [
+    ["longueur", data.clearance.length],
+    ["largeur", data.clearance.width],
+    ["hauteur", data.clearance.height],
+  ];
+  const exceeded = axes.filter(([, value]) => value < 0);
+  if (exceeded.length) return `Depassement : ${exceeded.map(([axis, value]) => `${axis} ${fixed(Math.abs(value))} mm`).join(", ")}.`;
+  const tight = axes.filter(([, value]) => value < 5);
+  if (tight.length) {
+    const axisList = new Intl.ListFormat("fr-FR", { style: "long", type: "conjunction" }).format(tight.map(([axis]) => axis));
+    return `Montage serre sur ${axisList}.`;
+  }
+  return "Le pack, son BMS et les jeux de montage entrent dans le boitier.";
+}
+
 function render() {
   const state = readState();
   const data = derive(state);
   document.body.classList.toggle("hide-prices", state.hidePrices);
+  setControlAvailability(state);
+
+  workspaceUi.title.textContent = `Pack ${state.series}S${state.parallel}P`;
+  workspaceUi.fit.textContent = data.minClearance < 0 ? "Depasse les dimensions du boitier" : data.minClearance < 5 ? "Compatible, montage serre" : "Compatible avec le boitier";
+  workspaceUi.fit.className = data.minClearance < 0 ? "danger" : data.minClearance < 5 ? "warning" : "";
 
   outputs.metricArchitecture.textContent = `${state.series}S${state.parallel}P`;
   outputs.metricCells.textContent = data.cellCount.toLocaleString("fr-FR");
@@ -822,11 +939,22 @@ function render() {
   outputs.packDims.textContent = `${fixed(data.packLength)} x ${fixed(data.packWidth)} x ${fixed(data.packHeight)} mm`;
   outputs.caseDims.textContent = `${fixed(state.caseLength)} x ${fixed(state.caseWidth)} x ${fixed(state.caseHeight)} mm`;
   outputs.packWeight.textContent = weight(data.totalWeightG);
-  outputs.clearance.textContent = `${fixed(data.clearance.length)} / ${fixed(data.clearance.width)} / ${fixed(data.clearance.height)} mm`;
+  const clearanceOutputs = [
+    [outputs.clearanceLength, data.clearance.length],
+    [outputs.clearanceWidth, data.clearance.width],
+    [outputs.clearanceHeight, data.clearance.height],
+  ];
+  clearanceOutputs.forEach(([node, value]) => {
+    node.textContent = `${fixed(value)} mm`;
+    node.classList.toggle("negative", value < 0);
+  });
+  outputs.fitMessage.textContent = fitDiagnostic(data);
   outputs.fitStatus.textContent = data.minClearance < 0 ? "Depasse" : data.minClearance < 5 ? "Serre" : "OK";
   outputs.fitStatus.className = `status-pill ${data.minClearance < 0 ? "danger" : data.minClearance < 5 ? "warning" : ""}`.trim();
   outputs.cellMaxDischargeOut.textContent = amps(state.cellMaxDischarge);
+  outputs.cellArrayMaxDischarge.textContent = amps(data.cellArrayMaxDischargeA);
   outputs.packMaxDischarge.textContent = amps(data.maxDischargeA);
+  outputs.dischargeLimit.textContent = data.dischargeLimit;
   outputs.packMaxPower.textContent = power(data.maxPowerW);
   outputs.maxVoltage.textContent = `${fixed(data.maxVoltage)} V`;
   outputs.cellsSubtotal.textContent = money(data.cellsSubtotal);
@@ -888,6 +1016,25 @@ function exportJson() {
   );
 }
 
+function fitCaseToPack() {
+  const data = derive(readState());
+  const roundUp = (value) => Math.ceil((value + 5) / 5) * 5;
+  el.caseLength.value = roundUp(data.packLength);
+  el.caseWidth.value = roundUp(data.packWidth);
+  el.caseHeight.value = roundUp(data.packHeight);
+  render();
+}
+
+function switchWorkspaceView(view) {
+  activeWorkspaceView = view === "quote" ? "quote" : "design";
+  const quoteActive = activeWorkspaceView === "quote";
+  workspaceUi.design.hidden = quoteActive;
+  workspaceUi.quote.hidden = !quoteActive;
+  workspaceUi.designTab.setAttribute("aria-selected", String(!quoteActive));
+  workspaceUi.quoteTab.setAttribute("aria-selected", String(quoteActive));
+  if (!quoteActive) requestAnimationFrame(render);
+}
+
 function serializedTopSvg() {
   const svg = svgs.top.cloneNode(true);
   svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -895,6 +1042,7 @@ function serializedTopSvg() {
   svg.removeAttribute("aria-label");
   const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
   style.textContent = `
+    svg{--cell-a:#e8f4f0;--cell-b:#f3efe5;--wire-red:#d92d20;--wire-black:#22272b}
     .cell-outline{stroke:#2c3934;stroke-width:.9}
     .cell-terminal{fill:#fff;stroke:#394642;stroke-width:.5}
     .case-outline{fill:rgba(255,255,255,.42);stroke:#6a766f;stroke-width:1.2;stroke-dasharray:6 5}
@@ -907,6 +1055,9 @@ function serializedTopSvg() {
     .label-svg{fill:#20302b;font-size:10px;font-family:Arial,sans-serif;text-anchor:middle;dominant-baseline:middle}
     .bms-label{fill:#fff}
     .small-svg{fill:#4c5a55;font-size:9px;font-family:Arial,sans-serif}
+    .dimension-line{fill:none;stroke:#65736e;stroke-width:.8}
+    .dimension-label{fill:#43514c;font-size:9px;font-family:Arial,sans-serif;text-anchor:middle}
+    .lead-label{fill:#34423d;font-size:9px;font-family:Arial,sans-serif;font-weight:700}
   `;
   svg.prepend(style);
   return new XMLSerializer().serializeToString(svg);
@@ -1191,6 +1342,7 @@ function quoteHtmlDocument() {
     })
     .join("\n");
   const quote = document.getElementById("quoteDocument").cloneNode(true);
+  quote.removeAttribute("hidden");
   return `<!doctype html>
 <html lang="fr">
   <head>
@@ -1213,12 +1365,31 @@ function exportQuoteHtml() {
 
 function printQuote() {
   document.body.classList.add("quote-print");
+  workspaceUi.quote.hidden = false;
   window.print();
 }
 
 window.addEventListener("afterprint", () => {
   document.body.classList.remove("quote-print");
+  switchWorkspaceView(activeWorkspaceView);
 });
+
+function initializeQuoteDefaults() {
+  const today = new Date();
+  const year = String(today.getFullYear());
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const isoDate = `${year}-${month}-${day}`;
+  if (el.quoteDate.value === "2026-07-07") el.quoteDate.value = isoDate;
+  if (el.quoteNumber.value === "DEV-20260707-001") el.quoteNumber.value = `DEV-${year}${month}${day}-001`;
+}
+
+function initializeResponsivePanels() {
+  if (!window.matchMedia("(max-width: 680px)").matches) return;
+  ["bmsPanel", "casePanel", "costPanel"].forEach((id) => {
+    document.getElementById(id).open = false;
+  });
+}
 
 ids.forEach((id) => {
   el[id].addEventListener("input", render);
@@ -1248,6 +1419,12 @@ document.getElementById("downloadQuotePdf").addEventListener("click", exportQuot
 document.getElementById("printQuote").addEventListener("click", printQuote);
 document.getElementById("printButton").addEventListener("click", () => window.print());
 document.getElementById("createPublicQuote").addEventListener("click", createPublicQuote);
+document.getElementById("fitCase").addEventListener("click", fitCaseToPack);
+workspaceUi.designTab.addEventListener("click", () => switchWorkspaceView("design"));
+workspaceUi.quoteTab.addEventListener("click", () => switchWorkspaceView("quote"));
+document.getElementById("jumpToDesign").addEventListener("click", () => {
+  document.querySelector(".workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 document.getElementById("saveConfig").addEventListener("click", saveCurrentConfig);
 document.getElementById("loadConfig").addEventListener("click", loadSelectedConfig);
 document.getElementById("deleteConfig").addEventListener("click", deleteSelectedConfig);
@@ -1280,5 +1457,8 @@ document.getElementById("removeLogo").addEventListener("click", () => {
 });
 window.addEventListener("resize", render);
 
+initializeQuoteDefaults();
+initializeResponsivePanels();
+initialState = readState();
 renderSaveList();
 render();
